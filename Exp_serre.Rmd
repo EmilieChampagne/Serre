@@ -19,6 +19,7 @@ Stress: niveau d'irrigation (0= 1000 ml, 1= 500 ml, 2= 300 ml)
 Percent: pourcentage d'humidité du sol
 
 ```{r Computing soil humidity, echo=FALSE}
+#Loading data & adjusting factors levels to be similar to other data file
 key <- read.table("./Key.txt", header=TRUE, colClasses = c("factor", "character", rep("factor", times=4)))
 key$Prov <- replace(key$Prov, key$Prov=="2018", "18")
 key$Prov <- replace(key$Prov, key$Prov=="2050", "50")
@@ -27,14 +28,17 @@ key$Prov <- as.factor(key$Prov)
 
 humidity <- read.table("./Poids_26juin.txt", header=TRUE, colClasses = c("character", rep("factor", times=3), rep("numeric", times =4)), dec=",")
 
+#Computing soil humidity
 humidity$Percent <- (((humidity$M_hum - humidity$M_sac) - (humidity$M2 - humidity$M_sac))/(humidity$M_hum - humidity$M_sac))*100
 
-levels <- union(levels(key$Esp), levels(humidity$Esp))
+#Merging the two files together
+levels <- union(levels(key$Esp), levels(humidity$Esp)) #Needed for the variable to stay in factor format
 levels_ID <- union(levels(key$ID), levels(humidity$ID))
 
-humidity <- left_join(mutate(humidity, Esp=factor(Esp, levels=levels), ID=factor(ID, levels=levels_ID)), mutate(key, Esp=factor(Esp, levels=levels), ID=factor(ID, levels=levels_ID)), by = c("Esp", "Prov", "ID"))
+humidity <- left_join(mutate(humidity, Esp=factor(Esp, levels=levels), ID=factor(ID, levels=levels_ID)), mutate(key, Esp=factor(Esp, levels=levels), ID=factor(ID, levels=levels_ID)), by = c("Esp", "Prov", "ID")) #Joining both file with all rows in humidity but not all rows in key
 
-humidity <- humidity[-which(humidity$Esp == "ERS" & humidity$Prov == "50"),]
+#Computing means
+humidity <- humidity[-which(humidity$Esp == "ERS" & humidity$Prov == "50"),]#Removing a mistake 
 
 kable(summarySE(humidity, measurevar= "Percent", groupvars=c("Esp","Stress"), na.rm = TRUE), digits=2)
 
