@@ -6,9 +6,8 @@
 dev.off()
 remove(list = ls())
 
-library(tidyverse)
 library(plyr)
-library(dplyr)
+library(tidyverse) #tidyverse inclut deja le package dplyr
 library(readr)
 library(purrr)
 library(ggplot2)
@@ -17,8 +16,9 @@ library(car)
 library(lsmeans)
 library(multcompView)
 
-Masses = read.table("C:/Users/Roxanne Turgeon/Dropbox/Initiation ? la recherche/Analyses R/Masses.txt",
-                    header=TRUE,na.string = "",dec = ",")
+Masses = read.table("./Masses.txt",
+                    header=TRUE,na.string = "",dec = ",") 
+#Comme on travaille dans un projet, la notation ./fonctionne
 Masses$Brout <- replace(Masses$Brout,Masses$Brout=="0","NoBrout")
 Masses$Brout <- replace(Masses$Brout,Masses$Brout=="1","Brout")
 Masses$Stress <- replace(Masses$Stress,Masses$Stress=="0","NoStress")
@@ -34,6 +34,16 @@ str(Masses)
 
 CET<-filter(Masses,Esp=="CET")
 
+#####Devrait-on ajouter un facteur pour tenir compte de la taille initiale des plants?####
+
+#Est-ce que la hauteur initiale est un bon estimateur de la masse totale?
+  #Pour repondre a cette question, on pourrait regarder la relation entre hauteur finale
+  #et la masse a la fin de l'experience
+cor.test(CET$Hauteur, CET$Mtot)
+plot(CET$Hauteur, CET$Mtot) 
+  #Oui, bonne correlation pour les cerisiers. 
+  #Utiliser hauteur initiale pourrait corriger pour la biomasse initiale des plants
+  #On pourrait verifier cette supposition pour chaque espece
 
 
 #################TOUTES ESP?CES###################
@@ -46,6 +56,24 @@ boxplot(Mtot~Stress+Esp,data=Masses)
 #BIOMASSE TOTALE CERISIERS 
 boxplot(Mtot~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = rep(c("red", "green"),6))
 
+#Avant de faire les modeles, combien de replicats avons-nous?
+ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise,
+      N = length(Mtot))
+  #Pour la majorite des combinaisons, nous n'avons qu'un replicat
+  #Pour simplifier les analyses, je propose que nous fassions une moyenne pour les rares
+  #cas ou nous avons 2 plants par combinaison
+CET_mean <- aggregate(CET$Mtot, by= data.frame(CET$Stress, CET$Brout, CET$Prov, CET$Bloc), FUN= "mean")
+colnames(CET_mean)[1:5] <- c("Stress", "Brout", "Prov", "Bloc", "Mtot")
+  ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc"), summarise,
+      N = length(Mtot))#Verification: nous avons bien un n = 1 pour chaque combinaison.
+##Modele avec plan en tiroir qui ne fonctionne pas encore
+  summary(aov(Mtot ~ Stress*Brout*Prov + Error(Bloc:Stress), data=CET_mean))
+  #Ici, note que c'est toi qui avait raison. On peut mettre l'interaction et avoir le modele 
+  #qui tient compte des effets simples
+  #Je suis rendue ici, car j'obtiens une erreur. 
+  #Je verifie des trucs et j'essaie de regler le probleme avant vendredi
+    
+#Modeles sans plan en tiroir
 
 model1<-lm(Mtot ~ Brout + Stress + Brout*Stress, data=CET)
 anova1<-anova(model1) # Pas d'int?ractions significatives mais effet du Stress2 
