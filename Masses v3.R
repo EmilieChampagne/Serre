@@ -15,6 +15,7 @@ library(readxl)
 library(car)
 library(lsmeans)
 library(multcompView)
+library(nlme)#ajout
 
 Masses = read.table("./Masses.txt",
                     header=TRUE,na.string = "",dec = ",") 
@@ -34,7 +35,7 @@ str(Masses)
 
 CET<-filter(Masses,Esp=="CET")
 
-#####Devrait-on ajouter un facteur pour tenir compte de la taille initiale des plants?####
+#####AJOUT EMILIE: Devrait-on ajouter un facteur pour tenir compte de la taille initiale des plants?####
 
 #Est-ce que la hauteur initiale est un bon estimateur de la masse totale?
   #Pour repondre a cette question, on pourrait regarder la relation entre hauteur finale
@@ -44,9 +45,9 @@ plot(CET$Hauteur, CET$Mtot)
   #Oui, bonne correlation pour les cerisiers. 
   #Utiliser hauteur initiale pourrait corriger pour la biomasse initiale des plants
   #On pourrait verifier cette supposition pour chaque espece
+##FIN DES AJOUTS##
 
-
-#################TOUTES ESP?CES###################
+#################TOUTES ESPECES###################
 
 boxplot(Mtot~Brout+Esp,data=Masses)
 boxplot(Mtot~Stress+Esp,data=Masses)
@@ -56,22 +57,37 @@ boxplot(Mtot~Stress+Esp,data=Masses)
 #BIOMASSE TOTALE CERISIERS 
 boxplot(Mtot~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = rep(c("red", "green"),6))
 
+##AJOUT PAR EMILIE
 #Avant de faire les modeles, combien de replicats avons-nous?
 ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise,
       N = length(Mtot))
   #Pour la majorite des combinaisons, nous n'avons qu'un replicat
   #Pour simplifier les analyses, je propose que nous fassions une moyenne pour les rares
   #cas ou nous avons 2 plants par combinaison
+
 CET_mean <- aggregate(CET$Mtot, by= data.frame(CET$Stress, CET$Brout, CET$Prov, CET$Bloc), FUN= "mean")
 colnames(CET_mean)[1:5] <- c("Stress", "Brout", "Prov", "Bloc", "Mtot")
-  ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc"), summarise,
-      N = length(Mtot))#Verification: nous avons bien un n = 1 pour chaque combinaison.
-##Modele avec plan en tiroir qui ne fonctionne pas encore
-  summary(aov(Mtot ~ Stress*Brout*Prov + Error(Bloc:Stress), data=CET_mean))
-  #Ici, note que c'est toi qui avait raison. On peut mettre l'interaction et avoir le modele 
-  #qui tient compte des effets simples
-  #Je suis rendue ici, car j'obtiens une erreur. 
-  #Je verifie des trucs et j'essaie de regler le probleme avant vendredi
+CET_mean <- mutate(CET_mean, Stress=factor(Stress, levels=c("NoStress", "Stress2")))#On indique simplement qu'il n'y a pas de niveau "Stress1" pour le facteur Stress
+#Verification: nous avons bien un n = 1 pour chaque combinaison.
+ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc"), summarise,
+      N = length(Mtot))
+  
+##Modele avec plan en tiroir
+mod <- aov(Mtot ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=CET_mean)   
+summary(mod)
+model.tables(mod, type="means") #Moyennes estimées par le modèle 
+  #Ajout de la hauteur initiale: Voici comment je procéderais
+  #aov(Mtot ~ Stress*Brout*Prov*Haut.initial +  Error(Bloc + Bloc:Stress), data=CET_mean)
+  #OU
+  #aov(Mtot ~ Stress*Brout*Prov + Haut.initial +  Error(Bloc + Bloc:Stress), data=CET_mean)
+  #Le choix dépendra des résultats. Ajoute les hauteurs initiales dans le fichier et
+  #on s'en reparle!
+  
+    # # Pour ton information, la ligne suivante fait le même design, mais avec
+    # # des résultats légèrement différents. Simplement une question de mathématique utilisé.
+    # mod <- lme(Mtot ~ Stress*Brout*Prov, random = ~ 1|Bloc/Stress, data=CET_mean)
+##FIN DES AJOUTS
+  
     
 #Modeles sans plan en tiroir
 
