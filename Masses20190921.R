@@ -16,34 +16,42 @@ library(car)
 library(lsmeans)
 library(multcompView)
 library(nlme)
+library(agricolae)##EC: Ajout pour test de Tukey
 
 
 Masses = read.table("C:/Users/Roxanne Turgeon/Dropbox/Initiation recherche/Analyses R/Masses.txt",header=TRUE,na.string = "",dec = ",") 
 #Pour moi le point ne fonctionne pas...
-Masses$Brout <- replace(Masses$Brout,Masses$Brout=="0","NoBrout")
-Masses$Brout <- replace(Masses$Brout,Masses$Brout=="1","Brout")
-Masses$Stress <- replace(Masses$Stress,Masses$Stress=="0","NoStress")
-Masses$Stress <- replace(Masses$Stress,Masses$Stress=="1","Stress1")
-Masses$Stress <- replace(Masses$Stress,Masses$Stress=="2","Stress2")
+##EC: C'est parce que ton fichier n'est pas dans le dossier du projet...
+##Pour la suite, je vais utiliser ton nouveau fichier pour avoir les hauteurs initiales
+#Masses <- read.table("./Masses.txt", header=TRUE, na.string = "", dec = ",") 
+Masses2 <- read.table("./Masses2.txt", header=TRUE, na.string = "", dec = ",") 
 
-Masses$Prov <- as.factor(as.character(Masses$Prov))
-Masses$Bloc <- as.factor(as.character(Masses$Bloc))
-Masses$Brout <- as.factor(as.character(Masses$Brout))
-Masses$Stress <- as.factor(as.character(Masses$Stress))
+Masses2$Brout <- replace(Masses2$Brout,Masses2$Brout=="0","NoBrout")
+Masses2$Brout <- replace(Masses2$Brout,Masses2$Brout=="1","Brout")
+Masses2$Stress <- replace(Masses2$Stress,Masses2$Stress=="0","NoStress")
+Masses2$Stress <- replace(Masses2$Stress,Masses2$Stress=="1","Stress1")
+Masses2$Stress <- replace(Masses2$Stress,Masses2$Stress=="2","Stress2")
 
-str(Masses)
+Masses2$Prov <- as.factor(as.character(Masses2$Prov))
+Masses2$Bloc <- as.factor(as.character(Masses2$Bloc))
+Masses2$Brout <- as.factor(as.character(Masses2$Brout))
+Masses2$Stress <- as.factor(as.character(Masses2$Stress))
 
-CET<-filter(Masses,Esp=="CET")
-CHR<-filter(Masses,Esp=="CHR")
-ERS<-filter(Masses,Esp=="ERS")
-THO<-filter(Masses,Esp=="THO")
-PIB<-filter(Masses,Esp=="PIB")
+Masses2$Hauteurini <- Masses2$Hauteurini/10
+
+str(Masses2)
+
+CET<-filter(Masses2,Esp=="CET")
+CHR<-filter(Masses2,Esp=="CHR")
+ERS<-filter(Masses2,Esp=="ERS")
+THO<-filter(Masses2,Esp=="THO")
+PIB<-filter(Masses2,Esp=="PIB")
 
 #################TOUTES ESPECES###################
 
-boxplot(Mtot~Brout+Esp,data=Masses)
-boxplot(Mtot~Stress+Esp,data=Masses)
-boxplot(Mtot~Bloc*Esp,data=Masses)
+boxplot(Mtot~Brout+Esp,data=Masses2)
+boxplot(Mtot~Stress+Esp,data=Masses2)
+boxplot(Mtot~Bloc*Esp,data=Masses2)
 
 #################CERISIERS########################
 
@@ -61,7 +69,7 @@ ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 
 #Pour la majorite des combinaisons, nous n'avons qu'un replicat
 #Pour simplifier les analyses, on fait une moyenne pour les rares cas 
-# ou nous avons 2 plants par combinaison
+#ou nous avons 2 plants par combinaison
 
 CET_mean <- aggregate(list(CET$Mtot,CET$Hauteurini,CET$Ratio), by= data.frame(CET$Stress, CET$Brout, CET$Prov, CET$Bloc), FUN= "mean")
 colnames(CET_mean)[1:7] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio")
@@ -77,32 +85,69 @@ levels(CET$Stress) <- c("NoStress","Stress")
 color = c(rep("green",4),rep("yellow",4),rep("red",4))
 boxplot(Mtot~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, 
         main = "Masses tot cerisiers", ylab="Masse tot") #Est-ce qu'il faudrait utiliser CET_mean ici aussi?
+  ##EC: Le boxplot est surtout une façon de visualiser les données, et non un graphique
+    #final. Tu peux utiliser CET_mean ou non. Belle amélioration du graphique! 
 
 ##Modele avec plan en tiroir
 mod <- aov(Mtot ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=CET_mean)   
 summary(mod)
 model.tables(mod, type="means") #Moyennes estimées par le modèle 
-  
+ 
+  ##EC:Pour répondre à ta question, j'ai consulté un livre (The analysis of Biological Data, Whitlock & Schluter)
+    #que j'aimerais te prêter sous peu. C'est un livre pour ceux qui débute en analyses.
+    #Dans la section pertinente ('Adjusting for the effects of a covariate'), voici
+    #la méthode recommandée (nommée : Analysis of covariance ou ANCOVA):
+    #1-Tester un modèle où il y a une interaction avec la covariable (ici: hauteur initiale)
+    #2-Si l'interaction n'est pas significative, enlever cette interaction
+    #Dans tes données, les interactions ne sont pas significatives, on peut donc l'enlever
+    #Le modèle choisi sera donc mod3. Il faudra refaire cette vérification pour
+    #chaque espèce
+ 
 #Ajout de la hauteur initiale
 mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
 #Sans la partie Bloc:Stress car ça empêche l'affichage de l'effet du Stress seul, est-ce normal?
-mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc), data=CET_mean) 
-summary(mod2) # Effet significatif de Prov, Stress et Hauteur ini
-#OU
+
+##EC: Je crois que c'est parce qu'il n'y a plus de degrés de liberté à l'erreur.
+  #Vérifions si le modèle sans design aucun a une interaction significative avec la covariable
+mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini, data=CET_mean)
+  summary(mod2)#Non
+
+# mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc), data=CET_mean) 
+# summary(mod2) # Effet significatif de Prov, Stress et Hauteur ini
+##EC: Cette option est à éviter car elle ne tient pas compte du design en tiroir,
+  #mais elle nous permet de voir qu'il n'y a pas d'interactions avec la hauteur initiale
+
+##EC: Modèle sélectionné:
 mod3 <- aov(Mtot ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
-summary(mod3) 
+summary(mod3) #Effet du stress, de la provenance et de la hauteur initiale
+
+plot(CET_mean$Mtot ~ CET_mean$Hauteurini)
 
 #Effet provenance et Stress seulement (est-ce comme ça qu'on doit faire? Car je ne peux faire ce post test
 #avec toute l'équation complète)
-boxplot(Mtot~Stress*Prov,data=CET, main = "Masses tot cerisiers", ylab="Masse tot")
-model <- aov(Mtot ~ Stress*Prov,data=CET)
-summary(model)
-TukeyHSD(model) #Différence Mtot moins en moins grande avec la provenance
+##EC: non, on ne peux faire ce modèle, parce qu'il ne tient ni compte du design, ni compte des traitements
+
+# boxplot(Mtot~Stress*Prov,data=CET, main = "Masses tot cerisiers", ylab="Masse tot")
+# model <- aov(Mtot ~ Stress*Prov,data=CET) ##EC: N'oublie pas d'utiliser CET_mean
+# summary(model)
+# TukeyHSD(model) #Différence Mtot moins en moins grande avec la provenance
 #Si on compare les Mtot sans stress, celle de 2080 est plus faible
 #Est-ce qu'on doit corriger pour la hauteur ini? Si oui comment?
+##EC: en utilisant le bon modèle et en modifiant ton code
+  #J'ai trouvé la solution sur ce site: http://www.personal.psu.edu/mar36/stat_461/split_plot/split_plot.html
+  #Ça ne sert à rien de faire un Tukey pour le stress...comme il n'y a que 2 niveaux!
+  #Non plus pour Hauteurini, car c'est un facteur continu.
+  #Il nous reste le facteur provenance, significatif et à trois niveaux
+print(with(CET_mean, HSD.test(Mtot, Prov, DFerror = 39, MSerror = 2873)))
+  #Pas de différence a posteriori, probablement à cause de la sévérité du test
+#Ce code, plus simple, donne le même test:
+lsmeans(mod3, ~ Prov) %>% cld(alpha=0.05) 
+#Je ne sais pas encore lequel donne les bons estimés...il va falloir que je regarde
 
-#Conditions d'application ANOVA biomasse totale Cerisiers 
-plot(mod2) #Normalite & Homogeneite des variances --> Ne marche pas!
+#Conditions d'application ANOVA biomasse totale Cerisiers
+plot(mod3) #Normalite & Homogeneite des variances --> Ne marche pas!
+##EC: Selon le site http://www.personal.psu.edu/mar36/stat_461/split_plot/split_plot.html
+  #on vérifie les suppositions sans l'erreur. Je te laisse tester toi-même si ça fonctionne
 
 shapiro.test(CET_mean$Mtot) #Distribution normale
 
@@ -110,6 +155,8 @@ leveneTest(y=CET_mean$Mtot,group=CET_mean$Brout) #Variances homogenes de Brout
 leveneTest(y=CET_mean$Mtot,group=CET_mean$Stress) #Variances homogenes de Stress
 
 #Est-ce qu'on doit vérifier sur les résidus aussi?
+##EC: Toujours! Les modèles sont plus résistants à des déviations de la normale à l'hétéroscédasticité
+  #À faire avec le bon modèle.
 pr <- proj(mod2)                                                                  
 res <- pr[["Within"]][,"Residuals"] #Extraire résidus
 
