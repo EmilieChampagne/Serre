@@ -16,10 +16,12 @@ library(car)
 library(lsmeans)
 library(multcompView)
 library(nlme)
-library(agricolae)##EC: Ajout pour test de Tukey
+#library(agricolae)##EC: Ajout pour test de Tukey
+library(lme4)##Ajout par Marie-Claude
+library(lmerTest)##Ajout par Marie-Claude
 
 
-Masses = read.table("C:/Users/Roxanne Turgeon/Dropbox/Initiation recherche/Analyses R/Masses.txt",header=TRUE,na.string = "",dec = ",") 
+#Masses = read.table("C:/Users/Roxanne Turgeon/Dropbox/Initiation recherche/Analyses R/Masses.txt",header=TRUE,na.string = "",dec = ",") 
 #Pour moi le point ne fonctionne pas...
 ##EC: C'est parce que ton fichier n'est pas dans le dossier du projet...
 ##Pour la suite, je vais utiliser ton nouveau fichier pour avoir les hauteurs initiales
@@ -67,17 +69,17 @@ plot(CET$Hauteur, CET$Mtot)
 #Savoir le nb de replicats 
 ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 
+##NOUVEAU CODE: Ajustements par Marie-Claude...il fallait faire une moyenne des hauteurs aussi!
+##Ce code est aussi plus élégant que celui que j'avais fait. (Tu peux supprimer ce commentaire après lecture)
 #Pour la majorite des combinaisons, nous n'avons qu'un replicat
 #Pour simplifier les analyses, on fait une moyenne pour les rares cas 
 #ou nous avons 2 plants par combinaison
 
-CET_mean <- aggregate(list(CET$Mtot,CET$Hauteurini,CET$Ratio), by= data.frame(CET$Stress, CET$Brout, CET$Prov, CET$Bloc), FUN= "mean")
-colnames(CET_mean)[1:7] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio")
-CET_mean <- mutate(CET_mean, Stress=factor(Stress, levels=c("NoStress", "Stress2")))#On indique qu'il n'y a pas de niveau "Stress1" pour le facteur Stress
-CET <- mutate(CET, Stress=factor(Stress, levels=c("NoStress", "Stress2")))
+CET_mean <- CET %>%  group_by(Esp, Prov, Bloc, Brout, Stress) %>%
+  summarise(hini=mean(Hauteurini), mtot=mean(Mtot)) 
 
-ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc","Hauteurini"), summarise,
-      N = length(Mtot)) #Verification n = 1 pour chaque combinaison
+ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc"), summarise,
+      N = length(mtot)) #Verification n = 1 pour chaque combinaison
 
 #Boxplot masses tot 
 levels(CET$Brout) <- c("NoBrout","Brout")
@@ -102,26 +104,27 @@ model.tables(mod, type="means") #Moyennes estimées par le modèle
     #Dans tes données, les interactions ne sont pas significatives, on peut donc l'enlever
     #Le modèle choisi sera donc mod3. Il faudra refaire cette vérification pour
     #chaque espèce
- 
-#Ajout de la hauteur initiale
-mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
-#Sans la partie Bloc:Stress car ça empêche l'affichage de l'effet du Stress seul, est-ce normal?
+##EC: J'ai mis cette section en commentaire, car nous avons une nouvelle version 
+# #Ajout de la hauteur initiale
+# mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
+# #Sans la partie Bloc:Stress car ça empêche l'affichage de l'effet du Stress seul, est-ce normal?
+# 
+# ##EC: Je crois que c'est parce qu'il n'y a plus de degrés de liberté à l'erreur.
+#   #Vérifions si le modèle sans design aucun a une interaction significative avec la covariable
+# mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini, data=CET_mean)
+#   summary(mod2)#Non
+# 
+# # mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc), data=CET_mean) 
+# # summary(mod2) # Effet significatif de Prov, Stress et Hauteur ini
+# ##EC: Cette option est à éviter car elle ne tient pas compte du design en tiroir,
+#   #mais elle nous permet de voir qu'il n'y a pas d'interactions avec la hauteur initiale
+# 
+# ##EC: Modèle sélectionné:
+# mod3 <- aov(Mtot ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
+# summary(mod3) #Effet du stress, de la provenance et de la hauteur initiale
+# 
+# plot(CET_mean$Mtot ~ CET_mean$Hauteurini)
 
-##EC: Je crois que c'est parce qu'il n'y a plus de degrés de liberté à l'erreur.
-  #Vérifions si le modèle sans design aucun a une interaction significative avec la covariable
-mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini, data=CET_mean)
-  summary(mod2)#Non
-
-# mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc), data=CET_mean) 
-# summary(mod2) # Effet significatif de Prov, Stress et Hauteur ini
-##EC: Cette option est à éviter car elle ne tient pas compte du design en tiroir,
-  #mais elle nous permet de voir qu'il n'y a pas d'interactions avec la hauteur initiale
-
-##EC: Modèle sélectionné:
-mod3 <- aov(Mtot ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
-summary(mod3) #Effet du stress, de la provenance et de la hauteur initiale
-
-plot(CET_mean$Mtot ~ CET_mean$Hauteurini)
 
 #Effet provenance et Stress seulement (est-ce comme ça qu'on doit faire? Car je ne peux faire ce post test
 #avec toute l'équation complète)
@@ -166,6 +169,34 @@ tapply(res,CET_mean$Stress, shapiro.test) #Normalite Stress ok
 bartlett.test(res~CET_mean$Brout) #Variances homogenes Brout
 bartlett.test(res~CET_mean$Stress) # Variance non homogene pour Stress
 boxplot(res~CET_mean$Stress+CET_mean$Brout) #on peut verifier avec le boxplot --> Ok
+
+####NOUVEAU CODE: voici le modèle proposé par Marie-Claude####
+B <- lmerTest::lmer( mtot ~ Stress*Brout*Prov*hini + (1|Bloc/Stress), data = CET_mean)
+#Tu vas voir un message. Il veut simplement dire que pour cette espèce, l'effet aléatoire
+#du bloc = 0. On le garde pareil dans le modèle, mais il a peu d'effet
+summary(B) #Dans ce summary, tu peux voir toutes les comparaisons a posteriori. 
+#Je soupçonne que tu vas peut-être trouver la notation confuse.
+#Appelle moi et je t'explique le tout
+anova(B)
+#Voici une copie d'un échange que j'ai eu avec Marie-Claude:
+#Ma question: S’il n’y avait pas d’interaction significative avec hini, est-ce qu’on enlèverait l’interaction?
+#Sa réponse: 3.	Dans CET, il y a seulement stress*brout*Hini, mais avec un F de 4.95 
+#contre 5.76 pour Hini seul, j’aurais tendance à garder Hini seul 
+#(mtot ~ Stress*Brout*Prov+ Hini + (1|Bloc/Stress)). 
+#Si les interactions avec Hini ne sont pas ou peu significatif, 
+#refaire l’analyse avec +Hini, vérifier si la covariable est significative. 
+#Si oui, on la garde et sinon on refait l’analyse sans.
+
+#Donc, on refait sans interaction avec Hini:
+B <- lmerTest::lmer( mtot ~ Stress*Brout*Prov + hini + (1|Bloc/Stress), data = CET_mean)
+anova(B) #Hini est significatif, on garde donc le modèle ainsi. On a un effet stress
+summary(B)
+
+##Pour vérifier tes résidus en incluant les effets aléatoires (soit l'effet du design)
+plot(B)
+##Et le graphique de normalité
+qqnorm(resid(B))
+
 
 ####Ratio CERISIERS####
 
