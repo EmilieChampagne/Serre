@@ -1,5 +1,5 @@
 
-# Juillet 2019
+# Spetembre-Octobre 2019
 # Turgeon Roxanne 
 # Initiation à la recherche / Migration assistee / Broutement / Stress_hydrique / Serre
 
@@ -16,16 +16,11 @@ library(car)
 library(lsmeans)
 library(multcompView)
 library(nlme)
-#library(agricolae)##EC: Ajout pour test de Tukey
-library(lme4)##Ajout par Marie-Claude
-library(lmerTest)##Ajout par Marie-Claude
+library(lmerTest)
+library(agricolae)
 
 
-#Masses = read.table("C:/Users/Roxanne Turgeon/Dropbox/Initiation recherche/Analyses R/Masses.txt",header=TRUE,na.string = "",dec = ",") 
-#Pour moi le point ne fonctionne pas...
-##EC: C'est parce que ton fichier n'est pas dans le dossier du projet...
-##Pour la suite, je vais utiliser ton nouveau fichier pour avoir les hauteurs initiales
-#Masses <- read.table("./Masses.txt", header=TRUE, na.string = "", dec = ",") 
+Masses = read.table("C:./Masses.txt",header=TRUE,na.string = "",dec = ",") 
 Masses2 <- read.table("./Masses2.txt", header=TRUE, na.string = "", dec = ",") 
 
 Masses2$Brout <- replace(Masses2$Brout,Masses2$Brout=="0","NoBrout")
@@ -51,177 +46,119 @@ PIB<-filter(Masses2,Esp=="PIB")
 
 #################TOUTES ESPECES###################
 
-boxplot(Mtot~Brout+Esp,data=Masses2)
-boxplot(Mtot~Stress+Esp,data=Masses2)
-boxplot(Mtot~Bloc*Esp,data=Masses2)
+boxplot(Mtot~Brout+Esp,data=Masses2,cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
+boxplot(Mtot~Stress+Esp,data=Masses2,cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
+boxplot(Mtot~Bloc*Esp,data=Masses2, cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
 
 #################CERISIERS########################
 
 ###BIOMASSE TOTALE CERISIERS###
 
-#Est-ce que la hauteur initiale est un bon estimateur de la masse totale?
+#Regarder si hauteur initiale est un bon estimateur de la masse totale
 #Regarder la relation entre hauteur finale et la masse a la fin de l'experience
 cor.test(CET$Hauteur, CET$Mtot)
 plot(CET$Hauteur, CET$Mtot) 
-#Oui, bonne correlation pour les cerisiers. 
-#Utiliser hauteur initiale pourrait corriger pour la biomasse initiale des plants
+#Oui, bonne correlation --> Utiliser hauteur initiale pour corriger pour la biomasse initiale des plants
 
 #Savoir le nb de replicats 
 ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 
-##NOUVEAU CODE: Ajustements par Marie-Claude...il fallait faire une moyenne des hauteurs aussi!
-##Ce code est aussi plus élégant que celui que j'avais fait. (Tu peux supprimer ce commentaire après lecture)
 #Pour la majorite des combinaisons, nous n'avons qu'un replicat
 #Pour simplifier les analyses, on fait une moyenne pour les rares cas 
 #ou nous avons 2 plants par combinaison
 
-CET_mean <- CET %>%  group_by(Esp, Prov, Bloc, Brout, Stress) %>%
-  summarise(hini=mean(Hauteurini), mtot=mean(Mtot)) 
+CET_mean <- aggregate(list(CET$Mtot,CET$Hauteurini,CET$Ratio), by= data.frame(CET$Stress, CET$Brout, CET$Prov, CET$Bloc), FUN= "mean")
+colnames(CET_mean)[1:7] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio")
+CET_mean <- mutate(CET_mean, Stress=factor(Stress, levels=c("NoStress", "Stress2")))#On indique qu'il n'y a pas de niveau "Stress1" pour le facteur Stress
+CET <- mutate(CET, Stress=factor(Stress, levels=c("NoStress", "Stress2")))
 
-ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc"), summarise,
-      N = length(mtot)) #Verification n = 1 pour chaque combinaison
+ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc","Hauteurini"), summarise,
+      N = length(Mtot)) #Verification n = 1 pour chaque combinaison
 
 #Boxplot masses tot 
-levels(CET$Brout) <- c("NoBrout","Brout")
-levels(CET$Stress) <- c("NoStress","Stress")
+levels(CET_mean$Brout) <- c("NoBrout","Brout")
+levels(CET_mean$Stress) <- c("NoStress","Stress")
 color = c(rep("green",4),rep("yellow",4),rep("red",4))
-boxplot(Mtot~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, 
-        main = "Masses tot cerisiers", ylab="Masse tot") #Est-ce qu'il faudrait utiliser CET_mean ici aussi?
-  ##EC: Le boxplot est surtout une façon de visualiser les données, et non un graphique
-    #final. Tu peux utiliser CET_mean ou non. Belle amélioration du graphique! 
+boxplot(Mtot~Brout+Stress+Prov,data=CET_mean,cex.axis=0.5, col = color,las=2, 
+        main = "Masses tot cerisiers", ylab="Masse tot", xlab="") 
 
-##Modele avec plan en tiroir
-mod <- aov(Mtot ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=CET_mean)   
-summary(mod)
-model.tables(mod, type="means") #Moyennes estimées par le modèle 
- 
-  ##EC:Pour répondre à ta question, j'ai consulté un livre (The analysis of Biological Data, Whitlock & Schluter)
-    #que j'aimerais te prêter sous peu. C'est un livre pour ceux qui débute en analyses.
-    #Dans la section pertinente ('Adjusting for the effects of a covariate'), voici
-    #la méthode recommandée (nommée : Analysis of covariance ou ANCOVA):
-    #1-Tester un modèle où il y a une interaction avec la covariable (ici: hauteur initiale)
-    #2-Si l'interaction n'est pas significative, enlever cette interaction
-    #Dans tes données, les interactions ne sont pas significatives, on peut donc l'enlever
-    #Le modèle choisi sera donc mod3. Il faudra refaire cette vérification pour
-    #chaque espèce
-##EC: J'ai mis cette section en commentaire, car nous avons une nouvelle version 
-# #Ajout de la hauteur initiale
-# mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
-# #Sans la partie Bloc:Stress car ça empêche l'affichage de l'effet du Stress seul, est-ce normal?
-# 
-# ##EC: Je crois que c'est parce qu'il n'y a plus de degrés de liberté à l'erreur.
-#   #Vérifions si le modèle sans design aucun a une interaction significative avec la covariable
-# mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini, data=CET_mean)
-#   summary(mod2)#Non
-# 
-# # mod2 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc), data=CET_mean) 
-# # summary(mod2) # Effet significatif de Prov, Stress et Hauteur ini
-# ##EC: Cette option est à éviter car elle ne tient pas compte du design en tiroir,
-#   #mais elle nous permet de voir qu'il n'y a pas d'interactions avec la hauteur initiale
-# 
-# ##EC: Modèle sélectionné:
-# mod3 <- aov(Mtot ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
-# summary(mod3) #Effet du stress, de la provenance et de la hauteur initiale
-# 
-# plot(CET_mean$Mtot ~ CET_mean$Hauteurini)
+#Modèle avec plan en tiroir
+A <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
+#Message veut dire que pour cette espèce, l'effet aléatoire du bloc = 0
+#On le garde pareil dans le modèle, mais il a peu d'effet
+anova(A)
+# Il y a seulement l'intéraction stress*brout*Hauteurini de significatif,
+# mais avec un F de 4.95 contre 5.76 pour Hini seul --> garder Hini seul 
+#(mtot ~ Stress*Brout*Prov+ Hauteurini + (1|Bloc/Stress)) 
 
-
-#Effet provenance et Stress seulement (est-ce comme ça qu'on doit faire? Car je ne peux faire ce post test
-#avec toute l'équation complète)
-##EC: non, on ne peux faire ce modèle, parce qu'il ne tient ni compte du design, ni compte des traitements
-
-# boxplot(Mtot~Stress*Prov,data=CET, main = "Masses tot cerisiers", ylab="Masse tot")
-# model <- aov(Mtot ~ Stress*Prov,data=CET) ##EC: N'oublie pas d'utiliser CET_mean
-# summary(model)
-# TukeyHSD(model) #Différence Mtot moins en moins grande avec la provenance
-#Si on compare les Mtot sans stress, celle de 2080 est plus faible
-#Est-ce qu'on doit corriger pour la hauteur ini? Si oui comment?
-##EC: en utilisant le bon modèle et en modifiant ton code
-  #J'ai trouvé la solution sur ce site: http://www.personal.psu.edu/mar36/stat_461/split_plot/split_plot.html
-  #Ça ne sert à rien de faire un Tukey pour le stress...comme il n'y a que 2 niveaux!
-  #Non plus pour Hauteurini, car c'est un facteur continu.
-  #Il nous reste le facteur provenance, significatif et à trois niveaux
-print(with(CET_mean, HSD.test(Mtot, Prov, DFerror = 39, MSerror = 2873)))
-  #Pas de différence a posteriori, probablement à cause de la sévérité du test
-#Ce code, plus simple, donne le même test:
-lsmeans(mod3, ~ Prov) %>% cld(alpha=0.05) 
-#Je ne sais pas encore lequel donne les bons estimés...il va falloir que je regarde
-
-#Conditions d'application ANOVA biomasse totale Cerisiers
-plot(mod3) #Normalite & Homogeneite des variances --> Ne marche pas!
-##EC: Selon le site http://www.personal.psu.edu/mar36/stat_461/split_plot/split_plot.html
-  #on vérifie les suppositions sans l'erreur. Je te laisse tester toi-même si ça fonctionne
-
-shapiro.test(CET_mean$Mtot) #Distribution normale
-
-leveneTest(y=CET_mean$Mtot,group=CET_mean$Brout) #Variances homogenes de Brout
-leveneTest(y=CET_mean$Mtot,group=CET_mean$Stress) #Variances homogenes de Stress
-
-#Est-ce qu'on doit vérifier sur les résidus aussi?
-##EC: Toujours! Les modèles sont plus résistants à des déviations de la normale à l'hétéroscédasticité
-  #À faire avec le bon modèle.
-pr <- proj(mod2)                                                                  
-res <- pr[["Within"]][,"Residuals"] #Extraire résidus
-
-tapply(res,CET_mean$Brout, shapiro.test) #Normalite Brout ok
-tapply(res,CET_mean$Stress, shapiro.test) #Normalite Stress ok
-
-bartlett.test(res~CET_mean$Brout) #Variances homogenes Brout
-bartlett.test(res~CET_mean$Stress) # Variance non homogene pour Stress
-boxplot(res~CET_mean$Stress+CET_mean$Brout) #on peut verifier avec le boxplot --> Ok
-
-####NOUVEAU CODE: voici le modèle proposé par Marie-Claude####
-B <- lmerTest::lmer( mtot ~ Stress*Brout*Prov*hini + (1|Bloc/Stress), data = CET_mean)
-#Tu vas voir un message. Il veut simplement dire que pour cette espèce, l'effet aléatoire
-#du bloc = 0. On le garde pareil dans le modèle, mais il a peu d'effet
-summary(B) #Dans ce summary, tu peux voir toutes les comparaisons a posteriori. 
-#Je soupçonne que tu vas peut-être trouver la notation confuse.
-#Appelle moi et je t'explique le tout
-anova(B)
-#Voici une copie d'un échange que j'ai eu avec Marie-Claude:
-#Ma question: S’il n’y avait pas d’interaction significative avec hini, est-ce qu’on enlèverait l’interaction?
-#Sa réponse: 3.	Dans CET, il y a seulement stress*brout*Hini, mais avec un F de 4.95 
-#contre 5.76 pour Hini seul, j’aurais tendance à garder Hini seul 
-#(mtot ~ Stress*Brout*Prov+ Hini + (1|Bloc/Stress)). 
-#Si les interactions avec Hini ne sont pas ou peu significatif, 
-#refaire l’analyse avec +Hini, vérifier si la covariable est significative. 
+#Si les interactions avec Hauteurini ne sont pas ou peu significatif, 
+#refaire l’analyse avec +Hauteurini, vérifier si la covariable est significative. 
 #Si oui, on la garde et sinon on refait l’analyse sans.
 
-#Donc, on refait sans interaction avec Hini:
-B <- lmerTest::lmer( mtot ~ Stress*Brout*Prov + hini + (1|Bloc/Stress), data = CET_mean)
-anova(B) #Hini est significatif, on garde donc le modèle ainsi. On a un effet stress
-summary(B)
+#On refait sans interaction avec Hini:
+A <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CET_mean)
+anova(A) #Hauteurini est significatif, on garde donc le modèle ainsi. On a un effet stress
+summary(A)
 
-##Pour vérifier tes résidus en incluant les effets aléatoires (soit l'effet du design)
-plot(B)
-##Et le graphique de normalité
-qqnorm(resid(B))
 
+
+###QUESTIONS
+#Lorsqu'on voit que Prov n'est pas significatif par exemple, est-ce qu'on peut fusionner les provenances
+#et prendre en compte seulement effet stress dans un graphique par exemple?
+#Même chose pour le broutement, on doit exclure les données des plants broutés ou les fusionner?
+boxplot(Mtot~Stress,data=CET) 
+
+
+
+
+##Vérifier résidus en incluant les effets aléatoires (effet du design)
+plot(A) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
+leveneTest(resid(A) ~ Stress*Brout*Prov, data = CET_mean) 
+
+
+
+###QUESTIONS:
+#On ne peut pas inclure Hauteurini dans le teste de Levene car c'est une variable continue
+#Ni prendre en compte l'effet du bloc, 
+#Est-ce correct???
+
+
+
+qqnorm(resid(A)) #Graphique de normalité ok
+qqline(resid(A))
+shapiro.test(resid(A)) #On vérifie avec un test, faire des transformations au besoin --> ok
 
 ####Ratio CERISIERS####
 
 #Boxplot ratio 
-boxplot(Ratio~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, main = "Ratio cerisiers", ylab="Masse tot")
+boxplot(Ratio~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, main = "Ratio cerisiers", 
+        xlab="",ylab="Masse tot")
 
 ##Modele avec plan en tiroir
-mod4 <- aov(Ratio ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=CET_mean)   
-summary(mod4)
-model.tables(mod4, type="means") #Moyennes estimées par le modèle 
+B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
+anova(B)   #Hauteur ini pas significatif, son interaction non plus --> On retire du modèle
 
-#Ajout de la hauteur initiale
-mod5 <- aov(Ratio ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
-summary(mod5)
-mod5 <- aov(Ratio ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc), data=CET_mean) #Sans la partie Bloc:Stress car ça empêche l'affichage de l'effet du Stress seul
-summary(mod5)
-#OU
-mod6 <- aov(Ratio ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=CET_mean)
-summary(mod6) 
+##Modele avec plan en tiroir sans Hini
+B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
+anova(B)   #Provenance et Stress significatif 
+summary(B) #Provenance 2018 et 2080 diffère (stress valeur de p de 0.1 ??)
 
-#Effet provenance et Stress seulement
-boxplot(Ratio~Stress*Prov,data=CET, main = "Ratio cerisiers", ylab="Ratio")
-model2 <- aov(Ratio ~ Stress*Prov,data=CET)
-summary(model2)
-TukeyHSD(model2)
+
+
+##QUESTIONS
+#On voit que le ratio de 2018 est différent de 2080 mais pas de 2050. Est-ce qu'il y a moyen de voir
+#si 2050 est différent de 2080?? Car avec le summary, ca compare toujours avec la valeur de base donc
+#provenance 2018...
+
+
+
+##Vérifier résidus 
+plot(B) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
+leveneTest(resid(B) ~ Stress*Brout*Prov, data = CET_mean) #ok
+
+qqnorm(resid(B)) #Graphique de normalité ok
+qqline(resid(B))
+shapiro.test(resid(B)) #On vérifie avec un test, faire des transformations au besoin --> ok
 
 #################CHENES########################
 
@@ -250,48 +187,71 @@ ddply(CHR_mean, c("Stress", "Brout", "Prov", "Bloc","Hauteurini"), summarise,
       N = length(Mtot))
 
 #Boxplot masses tot 
-levels(CHR$Brout) <- c("NoBrout","Brout")
-levels(CHR$Stress) <- c("NoStress","Stress")
+levels(CHR_mean$Brout) <- c("NoBrout","Brout")
+levels(CHR_mean$Stress) <- c("NoStress","Stress")
 color = c(rep("green",4),rep("yellow",4),rep("red",4))
-boxplot(Mtot~Brout+Stress+Prov,data=CHR,cex.axis=0.5, col = color,las=2, main = "Masses tot chenes", ylab="Masse tot")
+boxplot(Mtot~Brout+Stress+Prov,data=CHR_mean,cex.axis=0.5, col = color,las=2, main = "Masses tot chenes",
+        xlab="",ylab="Masse tot")
 
-##Modele avec plan en tiroir
-mod7 <- aov(Mtot ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=CHR_mean)   
-summary(mod7)
-model.tables(mod7, type="means") #Moyennes estimées par le modèle 
+#Modèle avec plan en tiroir
+C <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(C) # Garder Hini seul 
 
-#Ajout de la hauteur initiale
-mod8 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=CHR_mean)
-summary(mod8)
-#OU
-mod9 <- aov(Mtot ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=CHR_mean)
-summary(mod9) 
+#Sans interaction avec Hini:
+C <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(C) #Hauteurini significatif, Intéraction Stress:Provenance, tendance de Stress
+summary(C)
 
-#Conditions d'application ANOVA biomasse totale chenes MARCHE PAS
-plot(mod7) #Normalite & Homogeneite des variances
 
-leveneTest(y=CHR_mean$Mtot,group=CHR_mean$Brout) #Variances homogenes
-leveneTest(y=CHR_mean$Mtot,group=CHR_mean$Stress) #P-value pres de 0.05, on verifie avec le boxplot
-boxplot(mo7d$residuals~CHR_mean$Stress+CHR_mean$Brout)
 
-####RATIO CHENES####
+###QUESTIONS:
+#Lorsqu'on regarde le summary, on ne voit pas que Stress est significativement différent de NoStress
+#alors que c'est supposé l'être selon l'anova. Dans le summary, ca compare Stress à NoStress dans les 
+#conditons de "base" donc pour NoBrout et Prov2018. Si on regarde le graph, pour 2018 il n'y a pas
+#vraiment de différence entre Stress et No Stress pour 2018 alors qu'il y en a beaucoup pour 2050 et 2080.
+#D'ailleurs, c'est ce que signifie l'intéraction Stress*Prov significative dans l'anova
+#Mais comment sait-t-on s'il y a une différence significative entre Stress et No Stress pour 2050 et 2080?
+#Puisque le summary compare toujours avec la variable de "base" donc 2018...
+#Aussi les deux p-values des lignes Stress:Prov2050 et Stress:Prov2080 sont non-significatives 
+#pourtant dans l'anova on voit que l'interaction Stress*Prov est significative....pourquoi?
+#Et on ne peut pas comparer 2050 avec 2080?? Toujours seulement 2050 avec 2018 et 2080 avec 2018...
+
+
+
+
+
+##Vérifier résidus en incluant les effets aléatoires (effet du design)
+plot(C) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
+leveneTest(resid(C) ~ Stress*Brout*Prov, data = CHR_mean) #ok
+
+qqnorm(resid(C)) #Graphique de normalité ok
+qqline(resid(C))
+shapiro.test(resid(C)) #On vérifie avec un test, faire des transformations au besoin --> ok
+
+####Ratio CHENES####
 
 #Boxplot ratio 
-boxplot(Ratio~Brout+Stress+Prov,data=CHR,cex.axis=0.5, col = color,las=2, main = "Ratio chenes", ylab="Masse tot")
+boxplot(Ratio~Brout+Stress+Prov,data=CHR,cex.axis=0.5, col = color,las=2, main = "Ratio chenes", 
+        xlab="",ylab="Masse tot")
 
 ##Modele avec plan en tiroir
-mod10 <- aov(Ratio ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=CHR_mean)   
-summary(mod10)
-model.tables(mod10, type="means") #Moyennes estimées par le modèle 
+D <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(D) #Rien significatif
 
-#Ajout de la hauteur initiale
-mod11 <- aov(Ratio ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=CHR_mean)
-summary(mod11)
-mod11 <- aov(Ratio ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc), data=CET_mean) #Sans la partie Bloc:Stress car ça empêche l'affichage de l'effet du Stress seul
+##Modele avec plan en tiroir sans Hini
+D <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR_mean)
+anova(D)   #Tendance Stress
+summary(D)
 
-#OU
-mod12 <- aov(Ratio ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=CHR_mean)
-summary(mod12) 
+boxplot(Ratio~Stress,data=CHR,cex.axis=0.7,las=2,xlab="")
+
+##Vérifier résidus 
+plot(D) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(D) ~ Stress*Brout*Prov, data = CHR_mean) #ok
+
+qqnorm(resid(B)) #Graphique de normalité ok
+qqline(resid(B))
+shapiro.test(resid(B)) #ok
 
 #################ERABLES######################## SEULEMENT PROVENANCE 2018
 
@@ -311,43 +271,53 @@ ddply(ERS, c("Stress", "Brout", "Bloc"), summarise,N = length(Mtot))
 levels(ERS$Brout) <- c("NoBrout","Brout")
 levels(ERS$Stress) <- c("NoStress","Stress1","Stress2")
 color = c(rep("green",6))
-boxplot(Mtot~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, main = "Masses tot Erables", ylab="Masse tot")
+boxplot(Mtot~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, main = "Masses tot Erables", 
+        xlab="",ylab="Masse tot")
 
-##Modele avec plan en tiroir
-mod13 <- aov(Mtot ~ Stress*Brout +  Error(Bloc + Bloc:Stress), data=ERS)   
-summary(mod13)
-model.tables(mod13, type="means") #Moyennes estimées par le modèle 
+#Modèle avec plan en tiroir
+E <- lmerTest::lmer( Mtot ~ Stress*Brout*Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(E) # Rien de significatif
 
-#Ajout de la hauteur initiale
-mod14 <- aov(Mtot ~ Stress*Brout*Hauteurini +  Error(Bloc + Bloc:Stress), data=ERS)
-summary(mod14)
-#OU
-mod15 <- aov(Mtot ~ Stress*Brout + Hauteurini +  Error(Bloc + Bloc:Stress), data=ERS)
-summary(mod15) 
+#Sans interaction avec Hini:
+E <- lmerTest::lmer( Mtot ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(E) #Hauteurini tendance a etre significatif, InteractionStress:Brout significatif
+summary(E)
 
-#Conditions d'application ANOVA biomasse totale Erables MARCHE PAS
-plot(mod13) #Normalite & Homogeneite des variances
+#Si on retire Hini
+E <- lmerTest::lmer( Mtot ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
+anova(E) #Interaction Stress:Brout significatif
+summary(E)
 
-leveneTest(y=ERS$Mtot,group=ERS$Brout) #Variances homogenes
-leveneTest(y=ERS$Mtot,group=ERS$Stress) #P-value pres de 0.05, on verifie avec le boxplot
-boxplot(mo13d$residuals~ERS$Stress+ERS$Brout)
+##Vérifier résidus en incluant les effets aléatoires (effet du design)
+plot(E) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
+leveneTest(resid(E) ~ Stress*Brout, data = ERS) #ok
 
-####RATIO Erables####
+qqnorm(resid(E)) #Graphique de normalité ok
+qqline(resid(E))
+shapiro.test(resid(E)) #ok
+
+####Ratio ERABLES####
 
 #Boxplot ratio 
-boxplot(Ratio~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, main = "Ratio Erables", ylab="Masse tot")
+boxplot(Ratio~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, main = "Ratio Erables", 
+        xlab="",ylab="Masse tot")
 
 ##Modele avec plan en tiroir
-mod16 <- aov(Ratio ~ Stress*Brout +  Error(Bloc + Bloc:Stress), data=ERS)   
-summary(mod16)
-model.tables(mod10, type="means") #Moyennes estimées par le modèle 
+G <- lmerTest::lmer( Ratio ~ Stress*Brout*Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(G) #Rien significatif, tendance de Brout et Interaction Brout:Hauteurini
 
-#Ajout de la hauteur initiale
-mod17 <- aov(Ratio ~ Stress*Brout*Hauteurini +  Error(Bloc + Bloc:Stress), data=ERS)
-summary(mod17)
-#OU
-mod18 <- aov(Ratio ~ Stress*Brout + Hauteurini +  Error(Bloc + Bloc:Stress), data=ERS)
-summary(mod18) 
+##Modele avec plan en tiroir sans Hini
+G <- lmerTest::lmer( Ratio ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
+anova(G) #Rien significatif
+
+##Vérifier résidus 
+plot(G) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(G) ~ Stress*Brout, data = ERS) #ok
+
+qqnorm(resid(G)) #Graphique de normalité ok
+qqline(resid(G))
+shapiro.test(resid(G)) #ok
+
 
 #################THUYAS########################
 
@@ -367,43 +337,53 @@ ddply(THO, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 levels(THO$Brout) <- c("NoBrout","Brout")
 levels(THO$Stress) <- c("NoStress","Stress1","Stress2")
 color = c(rep("green",6),rep("yellow",6),rep("red",6))
-boxplot(Mtot~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot THUYAS", ylab="Masse tot")
+boxplot(Mtot~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot Thuyas",
+        xlab="", ylab="Masse tot")
 
-##Modele avec plan en tiroir
-mod19 <- aov(Mtot ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=THO)   
-summary(mod19)
-model.tables(mod19, type="means") #Moyennes estimées par le modèle 
+#Modèle avec plan en tiroir
+H <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THO)
+anova(H)
+# Intéraction stress*brout*Hauteurini et stress*brout de significatifs,
+# mais avec des F de 3.24 et 3.44 contre 21.26 pour Hini seul --> garder Hini seul 
 
-#Ajout de la hauteur initiale
-mod20 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=THO)
-summary(mod20)
-#OU
-mod21 <- aov(Mtot ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=THO)
-summary(mod21) 
+#On refait sans interaction avec Hini:
+H <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = THO)
+anova(H) #Hauteurini, Stress et Brout significatifs
+summary(H) #Je n'arrive pas à voir quel niveau de stress est significativement différent duquel? 
 
-#Conditions d'application ANOVA biomasse totale THUYAS MARCHE PAS
-plot(mod19) #Normalite & Homogeneite des variances
+boxplot(Mtot~Brout+Stress,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot Thuyas",
+        xlab="", ylab="Masse tot")
 
-leveneTest(y=THO$Mtot,group=THO$Brout) #Variances homogenes
-leveneTest(y=THO$Mtot,group=THO$Stress) #P-value pres de 0.05, on verifie avec le boxplot
-boxplot(mo19d$residuals~THO$Stress+THO$Brout)
+##Vérifier résidus en incluant les effets aléatoires (effet du design)
+plot(H) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
+leveneTest(resid(H) ~ Stress*Brout*Prov, data = THO) #ok
 
-####RATIO THUYAS####
+qqnorm(resid(H)) #Graphique de normalité ok
+qqline(resid(H))
+shapiro.test(resid(H)) #ok
+
+####Ratio THUYAS####
 
 #Boxplot ratio 
-boxplot(Ratio~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, main = "Ratio THUYAS", ylab="Masse tot")
+boxplot(Ratio~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, main = "Ratio thuyas", 
+        xlab="",ylab="Masse tot")
 
 ##Modele avec plan en tiroir
-mod22 <- aov(Ratio ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=THO)   
-summary(mod22)
-model.tables(mod22, type="means") #Moyennes estimées par le modèle 
+I <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THO)
+anova(I) #Interaction Stress*Brout*Prov significatif
 
-#Ajout de la hauteur initiale
-mod23 <- aov(Ratio ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=THO)
-summary(mod23)
-#OU
-mod24 <- aov(Ratio ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=THO)
-summary(mod24) 
+##Modele avec plan en tiroir sans Hini
+I <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
+anova(I) #Tendance Stress, Interaction Stress*Brout*Prov significatif
+summary(I)
+
+##Vérifier résidus 
+plot(I) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(I) ~ Stress*Brout*Prov, data = THO) #ok
+
+qqnorm(resid(I)) #Graphique de normalité ok
+qqline(resid(I))
+shapiro.test(resid(I)) #ok
 
 
 #################PINS########################
@@ -424,40 +404,49 @@ ddply(PIB, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 levels(PIB$Brout) <- c("NoBrout","Brout")
 levels(PIB$Stress) <- c("NoStress","Stress1","Stress2")
 color = c(rep("green",6),rep("yellow",6),rep("red",6))
-boxplot(Mtot~Brout+Stress+Prov,data=PIB,cex.axis=0.5, col = color,las=2, main = "Masses tot Pins", ylab="Masse tot")
+boxplot(Mtot~Brout+Stress+Prov,data=PIB,cex.axis=0.5, col = color,las=2, main = "Masses tot Pins", 
+        xlab="", ylab="Masse tot")
 
-##Modele avec plan en tiroir
-mod25 <- aov(Mtot ~ Stress*Brout*Prov +  Error(BlocBloc:Stress), data=PIB)   
-summary(mod25)
-model.tables(mod25, type="means") #Moyennes estimées par le modèle 
+#Modèle avec plan en tiroir
+J <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = PIB)
+anova(J) #Rien significatif
 
-#Ajout de la hauteur initiale
-mod26 <- aov(Mtot ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=PIB)
-summary(mod26)
-#OU
-mod27 <- aov(Mtot ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=PIB)
-summary(mod27) 
+#Sans interaction avec Hini:
+J <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = PIB)
+anova(J) #Hauteurini, Brout significatifs
+summary(J)
 
-#Conditions d'application ANOVA biomasse totale Pins MARCHE PAS
-plot(mod19) #Normalite & Homogeneite des variances
+boxplot(Mtot~Brout,data=PIB,cex.axis=0.5, col = color,las=2, main = "Masses tot Pins", 
+        xlab="", ylab="Masse tot")
 
-leveneTest(y=PIB$Mtot,group=PIB$Brout) #Variances homogenes
-leveneTest(y=PIB$Mtot,group=PIB$Stress) #P-value pres de 0.05, on verifie avec le boxplot
-boxplot(mo19d$residuals~PIB$Stress+PIB$Brout)
+##Vérifier résidus en incluant les effets aléatoires (effet du design)
+plot(J) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
+leveneTest(resid(J) ~ Stress*Brout*Prov, data = PIB) #ok
 
-####RATIO Pins####
+qqnorm(resid(J)) #Graphique de normalité ok
+qqline(resid(J))
+shapiro.test(resid(J)) #ok
+
+####Ratio PINS####
 
 #Boxplot ratio 
-boxplot(Ratio~Brout+Stress+Prov,data=PIB,cex.axis=0.5, col = color,las=2, main = "Ratio Pins", ylab="Masse tot")
+boxplot(Ratio~Brout+Stress+Prov,data=PIB,cex.axis=0.5, col = color,las=2, main = "Ratio pins", 
+        xlab="",ylab="Masse tot")
 
 ##Modele avec plan en tiroir
-mod28 <- aov(Ratio ~ Stress*Brout*Prov +  Error(Bloc + Bloc:Stress), data=PIB)   
-summary(mod28)
-model.tables(mod28, type="means") #Moyennes estimées par le modèle 
+K <- lmerTest::lmer(Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = PIB)
+anova(K) #Rien significatif mais tendance Interaction Brout*Hini et Stress Hini et tendance Brout et stress
+summary(K)
 
-#Ajout de la hauteur initiale
-mod29 <- aov(Ratio ~ Stress*Brout*Prov*Hauteurini +  Error(Bloc + Bloc:Stress), data=PIB)
-summary(mod29)
-#OU
-mod30 <- aov(Ratio ~ Stress*Brout*Prov + Hauteurini +  Error(Bloc + Bloc:Stress), data=PIB)
-summary(mod30) 
+##Modele avec plan en tiroir sans Hini
+K <- lmerTest::lmer(Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = PIB)
+anova(K) #Rien significatif
+
+##Vérifier résidus 
+plot(K) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(K) ~ Stress*Brout*Prov, data = PIB) #ok
+
+qqnorm(resid(K)) #Graphique de normalité --> ok
+qqline(resid(K))
+shapiro.test(resid(K)) #ok
+
