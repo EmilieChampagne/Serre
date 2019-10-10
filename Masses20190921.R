@@ -106,18 +106,26 @@ summary(A)
 #Lorsqu'on voit que Prov n'est pas significatif par exemple, est-ce qu'on peut fusionner les provenances
 #et prendre en compte seulement effet stress dans un graphique par exemple?
 #Même chose pour le broutement, on doit exclure les données des plants broutés ou les fusionner?
+<<<<<<< HEAD
 boxplot(Mtot~Stress,data=CET)
 
 ##EC: Oui, exactement. Pour un graphique, tu peux fusionner les facteurs non-significatifs pour représenter
 #uniquement les effets significatifs.
 #En fait, même si provenance était significatif, tu pourrais présenter l'effet du stress sans tenir compte
 #des provenances.
+=======
+boxplot(Mtot~Stress,data=CET) 
+
+
+
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
 
 ##Vérifier résidus en incluant les effets aléatoires (effet du design)
 plot(A) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
 leveneTest(resid(A) ~ Stress*Brout*Prov, data = CET_mean) 
 
 
+<<<<<<< HEAD
 
 ###QUESTIONS:
 #On ne peut pas inclure Hauteurini dans le teste de Levene car c'est une variable continue
@@ -126,6 +134,18 @@ leveneTest(resid(A) ~ Stress*Brout*Prov, data = CET_mean)
 
 ##EC: Hum, bonne question. En fait, le test de levene est juste une façon de formaliser ce qu'on voit
 #sur le graphique. Dans ce contexte, comme on fait 2 tests, je ne crois pas que ce soit un problème.
+=======
+
+###QUESTIONS:
+#On ne peut pas inclure Hauteurini dans le teste de Levene car c'est une variable continue
+#Ni prendre en compte l'effet du bloc, 
+#Est-ce correct???
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
+
+qqnorm(resid(A)) #Graphique de normalité ok
+qqline(resid(A))
+shapiro.test(resid(A)) #On vérifie avec un test, faire des transformations au besoin --> ok
+
 
 qqnorm(resid(A)) #Graphique de normalité ok
 qqline(resid(A))
@@ -141,8 +161,11 @@ boxplot(Ratio~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, main =
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
 anova(B)   #Hauteur ini pas significatif, son interaction non plus --> On retire du modèle
 
+<<<<<<< HEAD
 ##EC: attention ici...as-tu testé le modèle suivant "Ratio ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress)"?
 
+=======
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
 ##Modele avec plan en tiroir sans Hini
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
 anova(B)   #Provenance et Stress significatif 
@@ -155,10 +178,14 @@ summary(B) #Provenance 2018 et 2080 diffère (stress valeur de p de 0.1 ??)
 #si 2050 est différent de 2080?? Car avec le summary, ca compare toujours avec la valeur de base donc
 #provenance 2018...
 
+<<<<<<< HEAD
   ##EC: C'est ce dont je n'étais pas sûre...suite à mes recherches:
 CET_mean$Prov <- relevel(CET_mean$Prov, ref="2050")
 Test <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
 summary(Test) ##Et voilà!
+=======
+
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
 
 ##Vérifier résidus 
 plot(B) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
@@ -224,11 +251,16 @@ summary(C)
 #pourtant dans l'anova on voit que l'interaction Stress*Prov est significative....pourquoi?
 #Et on ne peut pas comparer 2050 avec 2080?? Toujours seulement 2050 avec 2018 et 2080 avec 2018...
 
+<<<<<<< HEAD
 ##EC: OK, plusieurs questions ici. On fera mieux d'en parler demain matin. Tu peux quand même utiliser
 #le code ci-haut pour changer le niveau de référence. Ça va répondre à une partie de tes questions.
 #Sinon, il faut comprendre que l'ANOVA est un test statistique plus puissant que les contrastes a posteriori.
 #Si les différences sont relativement faible, on peut avoir un effet significatif dans l'ANOVA qui ne se réalise
 #pas dans le test a posteriori.
+=======
+
+
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
 
 
 ##Vérifier résidus en incluant les effets aléatoires (effet du design)
@@ -248,6 +280,7 @@ boxplot(Ratio~Brout+Stress+Prov,data=CHR,cex.axis=0.5, col = color,las=2, main =
 ##Modele avec plan en tiroir
 D <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CHR_mean)
 anova(D) #Rien significatif
+<<<<<<< HEAD
 ##EC: Tu as aussi testé + Hini?
 
 ##Modele avec plan en tiroir sans Hini
@@ -267,6 +300,23 @@ qqline(resid(B))
 shapiro.test(resid(B)) #ok
 qqnorm(resid(D)) #
 qqline(resid(D))
+=======
+
+##Modele avec plan en tiroir sans Hini
+D <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR_mean)
+anova(D)   #Tendance Stress
+summary(D)
+
+boxplot(Ratio~Stress,data=CHR,cex.axis=0.7,las=2,xlab="")
+
+##Vérifier résidus 
+plot(D) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(D) ~ Stress*Brout*Prov, data = CHR_mean) #ok
+
+qqnorm(resid(B)) #Graphique de normalité ok
+qqline(resid(B))
+shapiro.test(resid(B)) #ok
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
 
 #################ERABLES######################## SEULEMENT PROVENANCE 2018
 
@@ -292,6 +342,7 @@ boxplot(Mtot~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, main = "Mass
 #Modèle avec plan en tiroir
 E <- lmerTest::lmer( Mtot ~ Stress*Brout*Hauteurini + (1|Bloc/Stress), data = ERS)
 anova(E) # Rien de significatif
+<<<<<<< HEAD
 
 #Sans interaction avec Hini:
 E <- lmerTest::lmer( Mtot ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
@@ -311,6 +362,27 @@ qqnorm(resid(E)) #Graphique de normalité ok
 qqline(resid(E))
 shapiro.test(resid(E)) #ok
 
+=======
+
+#Sans interaction avec Hini:
+E <- lmerTest::lmer( Mtot ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(E) #Hauteurini tendance a etre significatif, InteractionStress:Brout significatif
+summary(E)
+
+#Si on retire Hini
+E <- lmerTest::lmer( Mtot ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
+anova(E) #Interaction Stress:Brout significatif
+summary(E)
+
+##Vérifier résidus en incluant les effets aléatoires (effet du design)
+plot(E) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
+leveneTest(resid(E) ~ Stress*Brout, data = ERS) #ok
+
+qqnorm(resid(E)) #Graphique de normalité ok
+qqline(resid(E))
+shapiro.test(resid(E)) #ok
+
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
 ####Ratio ERABLES####
 
 #Boxplot ratio 
@@ -386,12 +458,21 @@ boxplot(Ratio~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, main =
 ##Modele avec plan en tiroir
 I <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THO)
 anova(I) #Interaction Stress*Brout*Prov significatif
+<<<<<<< HEAD
 
 ##Modele avec plan en tiroir sans Hini
 I <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
 anova(I) #Tendance Stress, Interaction Stress*Brout*Prov significatif
 summary(I)
 
+=======
+
+##Modele avec plan en tiroir sans Hini
+I <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
+anova(I) #Tendance Stress, Interaction Stress*Brout*Prov significatif
+summary(I)
+
+>>>>>>> 430618d701c4d557ad00a3b40ddcf7bd345219f3
 ##Vérifier résidus 
 plot(I) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
 leveneTest(resid(I) ~ Stress*Brout*Prov, data = THO) #ok
