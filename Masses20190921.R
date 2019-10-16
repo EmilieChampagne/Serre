@@ -102,8 +102,7 @@ boxplot(Mtot~Stress,col="green",data=CET)
 
 ##Vérifier résidus en incluant les effets aléatoires (effet du design)
 plot(A) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
-leveneTest(resid(A) ~ Stress*Brout*Prov, data = CET_mean) #Peut pas inclure Hauteurini car variable continue
-  #Ni prendre en compte l'effet du bloc, correct???
+leveneTest(resid(A) ~ Stress*Brout*Prov, data = CET_mean) #ok
 
 qqnorm(resid(A)) #Graphique de normalité ok
 qqline(resid(A))
@@ -117,7 +116,7 @@ boxplot(Ratio~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, main =
 
 ##Modele avec plan en tiroir
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
-anova(B)   #Hauteur ini pas significatif, son interaction non plus --> On retire du modèle
+anova(B) #Interaction Hauteur ini pas significatif 
 
 ##Modele avec plan en tiroir sans interaction Hini
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov+Hauteurini + (1|Bloc/Stress), data = CET_mean)
@@ -126,6 +125,7 @@ anova(B)   #Hauteur ini pas significatif
 ##Modele avec plan en tiroir sans Hini
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
 anova(B) #Provenance et Stress significatif 
+summary(B)
 #Ratio de stress2 plus grand que NoStress
 
 #Savoir quelle différence de Prov est significative (valeur de reference NoStress 2018)
@@ -166,17 +166,48 @@ boxplot(Mracine~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2,
         main = "Masses racinaire cerisiers", ylab="Masse racinaire", xlab="") 
 
 ##Modele avec plan en tiroir
+CET_mean$Brout <- relevel(CET_mean$Brout, ref="NoBrout")
+CET_mean$Stress <- relevel(CET_mean$Stress, ref="NoStress")
 CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018")
 AA <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
 anova(AA) #Interaction avec Hauteur ini significatif --> On garde le modèle
 #Effet Stress, Brout*Prov, Stress*Brout*Prov, tendance Prov
 summary(AA)
 
-#Savoir quelle difference pour tendance Prov
-#Prov 2050 different de 2018 et 2080 different de 2018
-CET_mean$Prov <- relevel(CET_mean$Prov, ref="2080")
+#Effet Stress
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018") #Pas de difference
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2050") #Stress2 plus faible que No stress 2050
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2080") #Pas de difference
 AA <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
-summary(AA) #2080 pas different de 2050
+summary(AA)
+
+#Savoir quelle difference pour Prov
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018")
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2050")
+AA <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
+summary(AA) 
+#Prov 2050 tendance a etre plus élevé que 2018 et 2080 pas different de 2018
+#2080 plus faible que 2050
+
+#Effet Brout?
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018") #Brout plus eleve que noBrout 2018
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2050") #Brout plus faible que noBrout 2050
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2080") #Pas de difference
+AA <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
+summary(AA) 
+
+#Effet Brout*Prov
+#Différence entre Brout et NoBrout de 2050 est plus petite que 2018
+#Différence entre Brout et NoBrout de 2080 est égale avec 2018
+#Différence entre Brout et NoBrout de 2080 est plus grande que 2050
+
+#Effet Stress*Brout*Prov
+#Stress2*Brout 2050 est plus élevé que 2018
+#Stress2*Brout 2080 pas différent de 2018
+#Stress2*Brout 2080 est plus faible que 2050
+ #2018 Différence entre Stress2 et No Stress est plus faible pour Brout que NoBrout
+ #2050 Différence entre Stress2 et No Stress est plus élevée pour Brout que NoBrout
+ #2080 Différence entre Stress2 et No Stress n'es pas différente entre Brout et NoBrout
 
 #Representation effet stress et prov
 boxplot(Mracine~Stress+Prov,data=CET,cex.axis=0.5, las=2, 
@@ -303,7 +334,7 @@ anova(C) # Garder Hini seul
 CHR_mean1$Prov <- relevel(CHR_mean1$Prov, ref="2018")
 C <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean1)
 anova(C) #Hauteurini significatif, Intéraction Stress:Provenance, tendance de Stress
-summary(C) #Pas d'interaction Prov*Stress singnificatif (en comparaison avec 2018)
+summary(C) #Pas d'interaction Stress2*Prov singnificatif (en comparaison avec 2018)
 
 #Avec Prov2050 comme valeur de base de reference (sans outlier)
 CHR_mean1$Prov <- relevel(CHR_mean1$Prov, ref="2050")
