@@ -67,8 +67,8 @@ ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 #Pour simplifier les analyses, on fait une moyenne pour les rares cas 
 #ou nous avons 2 plants par combinaison
 
-CET_mean <- aggregate(list(CET$Mtot,CET$Hauteurini,CET$Ratio), by= data.frame(CET$Stress, CET$Brout, CET$Prov, CET$Bloc), FUN= "mean")
-colnames(CET_mean)[1:7] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio")
+CET_mean <- aggregate(list(CET$Mtot,CET$Hauteurini,CET$Ratio,CET$Maerien,CET$Mracine), by= data.frame(CET$Stress, CET$Brout, CET$Prov, CET$Bloc), FUN= "mean")
+colnames(CET_mean)[1:9] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio","Maerien","Mracine")
 CET_mean <- mutate(CET_mean, Stress=factor(Stress, levels=c("NoStress", "Stress2")))#On indique qu'il n'y a pas de niveau "Stress1" pour le facteur Stress
 CET <- mutate(CET, Stress=factor(Stress, levels=c("NoStress", "Stress2")))
 
@@ -76,8 +76,6 @@ ddply(CET_mean, c("Stress", "Brout", "Prov", "Bloc","Hauteurini"), summarise,
       N = length(Mtot)) #Verification n = 1 pour chaque combinaison
 
 #Boxplot masses tot 
-levels(CET$Brout) <- c("NoBrout","Brout")
-levels(CET$Stress) <- c("NoStress","Stress")
 color = c(rep("green",4),rep("yellow",4),rep("red",4))
 boxplot(Mtot~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, 
         main = "Masses tot cerisiers", ylab="Masse tot", xlab="") 
@@ -98,8 +96,9 @@ anova(A)
 #On refait sans interaction avec Hini:
 A <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CET_mean)
 anova(A) #Hauteurini est significatif, on garde donc le modèle ainsi. On a un effet stress
-summary(A)
-boxplot(Mtot~Stress,data=CET) 
+
+#Représentation effet Stress
+boxplot(Mtot~Stress,col="green",data=CET) 
 
 ##Vérifier résidus en incluant les effets aléatoires (effet du design)
 plot(A) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
@@ -126,16 +125,22 @@ anova(B)   #Hauteur ini pas significatif
 
 ##Modele avec plan en tiroir sans Hini
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
-anova(B)   #Provenance et Stress significatif 
-summary(B) #Provenance 2018 et 2080 diffère mais pas 2018 et 2050
+anova(B) #Provenance et Stress significatif 
+#Ratio de stress2 plus grand que NoStress
+
+#Savoir quelle différence de Prov est significative (valeur de reference NoStress 2018)
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018")
+CET_mean$Stress <- relevel(CET_mean$Stress, ref="NoStress")
+B1 <- lmerTest::lmer( Ratio ~ Stress*Prov + (1|Bloc/Stress), data = CET_mean)
+summary(B1) #Prov 2080 differe de 2018 mais pas 2050-2018
 
 #Savoir si 2050 et 2080 sont significativement différent (on place 2050 comme valeur de base de reference)
 CET_mean$Prov <- relevel(CET_mean$Prov, ref="2050")
-Test <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
-summary(Test) #Oui, Prov 2050 diffère de 2080
+B1 <- lmerTest::lmer( Ratio ~ Stress*Prov + (1|Bloc/Stress), data = CET_mean)
+summary(B1) #Oui, Prov 2050 diffère de 2080
 
 #Représentation de l'effet stress
-boxplot(Ratio~Stress,las=2,cex.axis=0.7,xlab="",data=CET)
+boxplot(Ratio~Stress,las=2,cex.axis=0.7,col="green",xlab="",data=CET)
 
 #Représentation de l'effet Prov
 boxplot(Ratio~Prov,las=2,cex.axis=0.7,xlab="",data=CET) 
@@ -144,8 +149,6 @@ text(c(1,2,3),pos=3, offset=10, c("a","a","b"))
 #Représentation de l'effet stress et Prov
 color2 = c(rep("green",2),rep("yellow",2),rep("red",2))
 boxplot(Ratio~Stress+Prov,las=2,cex.axis=0.7,col=color2,xlab="",data=CET) 
-text(c(1,2,3),pos = 3, offset =18, c("a","a","b"))
-
 
 ##Vérifier résidus 
 plot(B) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
@@ -154,6 +157,82 @@ leveneTest(resid(B) ~ Stress*Brout*Prov, data = CET_mean) #ok
 qqnorm(resid(B)) #Graphique de normalité ok
 qqline(resid(B))
 shapiro.test(resid(B)) #On vérifie avec un test, faire des transformations au besoin --> ok
+
+##MASSE RACINAIRE##
+
+#Boxplot masse racine
+color = c(rep("green",4),rep("yellow",4),rep("red",4))
+boxplot(Mracine~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, 
+        main = "Masses racinaire cerisiers", ylab="Masse racinaire", xlab="") 
+
+##Modele avec plan en tiroir
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018")
+AA <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
+anova(AA) #Interaction avec Hauteur ini significatif --> On garde le modèle
+#Effet Stress, Brout*Prov, Stress*Brout*Prov, tendance Prov
+summary(AA)
+
+#Savoir quelle difference pour tendance Prov
+#Prov 2050 different de 2018 et 2080 different de 2018
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2080")
+AA <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
+summary(AA) #2080 pas different de 2050
+
+#Representation effet stress et prov
+boxplot(Mracine~Stress+Prov,data=CET,cex.axis=0.5, las=2, 
+        main = "Masses racinaire cerisiers", ylab="Masse racinaire", xlab="") 
+#Diminution de la masse racinaire avec le stress
+#Masse racinaire plus faible prov2080 que 2018
+
+##Vérifier résidus 
+plot(AA) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
+leveneTest(resid(AA) ~ Stress*Brout*Prov, data = CET_mean) #ok
+
+qqnorm(resid(AA)) #Graphique de normalité ok
+qqline(resid(AA))
+shapiro.test(resid(AA)) #ok
+
+##MASSE AERIENNE##
+
+#Boxplot masse racine
+color = c(rep("green",4),rep("yellow",4),rep("red",4))
+boxplot(Maerien~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color,las=2, 
+        main = "Masses aeriennes cerisiers", ylab="Masse aerienne", xlab="") 
+
+##Modele avec plan en tiroir
+BB <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
+anova(BB) 
+# Interaction stress*brout*Hauteurini de significatif,
+# mais avec un F de 5.56 contre 6.86 pour Hini seul --> garder Hini seul 
+
+##Modele avec plan en tiroir sans interaction Hauteurini
+CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018")
+BB <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CET_mean)
+anova(BB)#Effet Hauteurini et stress
+summary(BB) #Masse aerienne plus petite chez Stress2
+
+##Vérifier résidus 
+plot(BB) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
+leveneTest(resid(BB) ~ Stress*Brout*Prov, data = CET_mean) #ok
+
+qqnorm(resid(BB)) #Graphique de normalité ok
+qqline(resid(BB))
+shapiro.test(resid(BB)) # ok
+
+
+##Conclusion Ratio, aerien et racinaire##
+CETStress2<-filter(CET,Stress=="Stress2") 
+mean(CETStress2$Maerien) #47
+mean(CETStress2$Mracine) #21
+mean(CETStress2$Ratio) #3.19
+
+CETNoStress<-filter(CET,Stress=="NoStress")
+mean(CETNoStress$Maerien) #34
+mean(CETNoStress$Mracine) #11
+mean(CETNoStress$Ratio) # 2.41
+
+#Les plants stressés présentent une croissance plus faible aerien et racinaire, mais nettement
+#plus faible pour le racinaire donnant un ratio plus élevé que chez les plants non stressés
 
 #################CHENES########################
 
@@ -172,8 +251,8 @@ ddply(CHR, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 #Pour simplifier les analyses, on fait une moyenne pour les rares cas 
 # ou nous avons 2 plants par combinaison
 
-CHR_mean <- aggregate(list(CHR$Mtot,CHR$Hauteurini,CHR$Ratio), by= data.frame(CHR$Stress, CHR$Brout, CHR$Prov, CHR$Bloc), FUN= "mean")
-colnames(CHR_mean)[1:7] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio")
+CHR_mean <- aggregate(list(CHR$Mtot,CHR$Hauteurini,CHR$Ratio,CHR$Maerien,CHR$Mracine), by= data.frame(CHR$Stress, CHR$Brout, CHR$Prov, CHR$Bloc), FUN= "mean")
+colnames(CHR_mean)[1:9] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio","Maerien","Mracine")
 CHR_mean <- mutate(CHR_mean, Stress=factor(Stress, levels=c("NoStress", "Stress2")))#On indique qu'il n'y a pas de niveau "Stress1" pour le facteur Stress
 CHR <- mutate(CHR, Stress=factor(Stress, levels=c("NoStress", "Stress2")))
 
@@ -182,8 +261,6 @@ ddply(CHR_mean, c("Stress", "Brout", "Prov", "Bloc","Hauteurini"), summarise,
       N = length(Mtot))
 
 #Boxplot masses tot 
-levels(CHR$Brout) <- c("NoBrout","Brout")
-levels(CHR$Stress) <- c("NoStress","Stress")
 color = c(rep("green",4),rep("yellow",4),rep("red",4))
 boxplot(Mtot~Brout+Stress+Prov,data=CHR,cex.axis=0.5, col = color,las=2, main = "Masses tot chenes",
         xlab="",ylab="Masse tot")
@@ -194,33 +271,57 @@ anova(C) # Garder Hini seul
 
 #Sans interaction avec Hini:
 CHR_mean$Prov <- relevel(CHR_mean$Prov, ref="2018")
+CHR_mean$Brout <- relevel(CHR_mean$Brout, ref="NoBrout")
 C <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
 anova(C) #Hauteurini significatif, Intéraction Stress:Provenance, tendance de Stress
-summary(C) #Stress2:Prov2050 et Stress2:Prov 2080 non significatis (comparaison avec 2018)
+summary(C)#Difference entre Stress2-NoStress plus grande chez Prov2050 que 2018
 
 #Avec Prov2050 comme valeur de base de reference
 CHR_mean$Prov <- relevel(CHR_mean$Prov, ref="2050")
 C2 <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
-summary(C2) #Stress2:Prov2080 non significatif (comparaison avec 2050)
-
-####QUESTION
-#Avec l'anova on voit que l'interaction Stress*Prov est significative alors que dans le summary,
-#toutes les combinaisons (2018 avec 2080, 2018 avec 2050, 2050 avec 2080) ne le sont pas...
-#Est-ce parce que l'anova est plus puissante? Si oui, comment on peut savoir quelle est la/les 
-#différences significatives? Est ce qu'on peut se fier au summary pour déterminer ce qui est
-#significatif ou non?
-
+summary(C2) #Difference entre Stress2-NoStress plus grande chez Prov2050 que 2080
 
 #Representation tendance de l'effet stress
-boxplot(Mtot~Stress,data=CHR,cex.axis=0.7,las=2,xlab="")
+boxplot(Mtot~Stress,data=CHR,cex.axis=0.7,col="green",las=2,xlab="")
 
 #Representation interaction Prov*Stress
 color2 = c(rep("green",2),rep("yellow",2),rep("red",2))
-boxplot(Mtot~Stress+Prov,data=CHR,col=color2,cex.axis=0.7,las=2,xlab="")
+boxplot(Mtot~Stress+Prov,data=CHR,col=color2,cex.axis=0.7,las=2,xlab="") #outlier 
+
+#Enlever le outlier
+CHR1 <- CHR[-29, ]
+CHR_mean1 <- aggregate(list(CHR1$Mtot,CHR1$Hauteurini,CHR1$Ratio), by= data.frame(CHR1$Stress, CHR1$Brout, CHR1$Prov, CHR1$Bloc), FUN= "mean")
+colnames(CHR_mean1)[1:7] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio")
+CHR_mean1 <- mutate(CHR_mean1, Stress=factor(Stress, levels=c("NoStress", "Stress2")))#On indique qu'il n'y a pas de niveau "Stress1" pour le facteur Stress
+CHR1 <- mutate(CHR1, Stress=factor(Stress, levels=c("NoStress", "Stress2")))
+
+#Modèle avec plan en tiroir sans le outlier
+C <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CHR_mean1)
+anova(C) # Garder Hini seul 
+
+#Sans interaction avec Hini (sans outlier)
+CHR_mean1$Prov <- relevel(CHR_mean1$Prov, ref="2018")
+C <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean1)
+anova(C) #Hauteurini significatif, Intéraction Stress:Provenance, tendance de Stress
+summary(C) #Pas d'interaction Prov*Stress singnificatif (en comparaison avec 2018)
+
+#Avec Prov2050 comme valeur de base de reference (sans outlier)
+CHR_mean1$Prov <- relevel(CHR_mean1$Prov, ref="2050")
+C2 <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean1)
+summary(C2) #Stress2:Prov2080 significatif (comparaison avec 2050), Stress significatif
+
+#Representation tendance de l'effet stress (sans outlier)
+boxplot(Mtot~Stress,data=CHR1,col="green",cex.axis=0.7,las=2,xlab="")
+
+#Representation interaction Prov*Stress (sans outlier)
+color2 = c(rep("green",2),rep("yellow",2),rep("red",2))
+boxplot(Mtot~Stress+Prov,data=CHR1,col=color2,cex.axis=0.7,las=2,xlab="") 
+#Conclusion: Difference entre Stress2 et NoStress est plus grande chez 2050 que 2080
+#Surtout Prov2050 qui contribue à la tendance de l'effet stress...
 
 ##Vérifier résidus en incluant les effets aléatoires (effet du design)
 plot(C) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
-leveneTest(resid(C) ~ Stress*Brout*Prov, data = CHR_mean) #ok
+leveneTest(resid(C) ~ Stress*Brout*Prov, data = CHR_mean1) #ok
 
 qqnorm(resid(C)) #Graphique de normalité ok
 qqline(resid(C))
@@ -254,6 +355,104 @@ qqnorm(resid(B)) #Graphique de normalité ok
 qqline(resid(B))
 shapiro.test(resid(B)) #ok
 
+##MASSE RACINAIRE##
+
+#Boxplot masse racine
+color = c(rep("green",4),rep("yellow",4),rep("red",4))
+boxplot(Mracine~Brout+Stress+Prov,data=CHR,cex.axis=0.5, col = color,las=2, 
+        main = "Masses racinaire chenes", ylab="Masse racinaire", xlab="") 
+
+##Modele avec plan en tiroir
+CC <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(CC) #Hauteur ini significatif --> On garde Hiniseul
+
+##Modele avec plan en tiroir sans interaction Hini
+CC <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(CC) #Effet Stress et Stress*Prov
+
+#Effet stress
+CC <- lmerTest::lmer( Mracine ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+summary(CC) #Mracine de Stress2 est plus faible que NoStress
+
+#Savoir quelle difference pour Stress*Prov
+CHR_mean$Prov <- relevel(CHR_mean$Prov, ref="2018")
+CC <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+summary(CC) #Stress2*Prov2050 significatif, pas 2080 (comparaison avec 2018)
+
+#2050 comme reference
+CHR_mean$Prov <- relevel(CHR_mean$Prov, ref="2050")
+CC <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+summary(CC) #Stress2*Prov2080 significatif(comparaison avec 2050)
+
+#Representation effet stress et prov
+boxplot(Mracine~Stress+Prov,data=CHR,cex.axis=0.5, las=2, 
+        main = "Masses racinaire chenes", ylab="Masse racinaire", xlab="") 
+
+#Difference entre Stress2 et No Stress est plus importante chez Prov 2050 (meme pattern que pour Mtot)
+
+##Vérifier résidus 
+plot(CC) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(CC) ~ Stress*Brout*Prov, data = CHR_mean) #ok
+
+qqnorm(resid(CC)) #Graphique de normalité ok
+qqline(resid(CC))
+shapiro.test(resid(CC)) #Essayer une transformation log
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+##MASSE AERIENNE##
+
+#Boxplot masse racine
+boxplot(Maerien~Brout+Stress+Prov,data=CHR,cex.axis=0.5, col = color,las=2, 
+        main = "Masses aeriennes chenes", ylab="Masse aerienne", xlab="") 
+
+##Modele avec plan en tiroir
+DD <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(DD) #pas interaction avec Hini
+
+##Modele avec plan en tiroir sans interaction Hauteurini
+CHR_mean$Prov <- relevel(CHR_mean$Prov, ref="2018")
+DD <- lmerTest::lmer(Maerien ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(DD)#Tendance Prov et Tendance Stress:Prov
+summary(DD)#Prov 2050 significativement plus elevé et Stress2*Prov2050 significatif
+
+#Reference Prov2080
+CHR_mean$Prov <- relevel(CHR_mean$Prov, ref="2080")
+DD <- lmerTest::lmer(Maerien ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean)
+anova(DD)#Tendance Prov et Tendance Stress:Prov
+summary(DD)#Prov 2050 significativement plus élevé et tendance Stress2*Prov2050
+
+#Prov 2050 a tendance a avoir Mracinaire plus elevé et une plus grande difference entre Stress2 et
+#NoStress que les autres provenances
+
+#Representation tendance Stress*Prov
+boxplot(Maerien~Stress+Prov,data=CHR,cex.axis=0.5, col = color2,las=2, 
+        main = "Masses aeriennes chenes", ylab="Masse aerienne", xlab="") 
+
+##Conclusion Ratio, aerien et racinaire##
+CHRStress2<-filter(CHR,Stress=="Stress2") 
+mean(CHRStress2$Maerien) #20
+mean(CHRStress2$Mracine) #18
+mean(CHRStress2$Ratio) #1.21
+
+CHRNoStress<-filter(CHR,Stress=="NoStress")
+mean(CHRNoStress$Maerien) #23
+mean(CHRNoStress$Mracine) #24
+mean(CHRNoStress$Ratio) # 1.00
+
+#Croissance aussi rapide partie aerienne pour Stress2 que NoStress (pas significatif)
+#Croissance ralentie partie racinaire (surtout Prov2050) = Ratio plus élevé pour Stress2
+
+##Vérifier résidus 
+plot(DD) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(DD) ~ Stress*Brout*Prov, data = CHR_mean) #ok
+
+qqnorm(resid(DD)) #Graphique de normalité ok
+qqline(resid(DD))
+shapiro.test(resid(DD)) #ok
+
 #################ERABLES######################## SEULEMENT PROVENANCE 2018
 
 ###BIOMASSE TOTALE ERABLES###
@@ -269,8 +468,6 @@ ddply(ERS, c("Stress", "Brout", "Bloc"), summarise,N = length(Mtot))
 #Un replicat pour toutes les combinaisons
 
 #Boxplot masses tot 
-levels(ERS$Brout) <- c("NoBrout","Brout")
-levels(ERS$Stress) <- c("NoStress","Stress1","Stress2")
 color = c(rep("green",6))
 boxplot(Mtot~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, main = "Masses tot Erables", 
         xlab="",ylab="Masse tot")
@@ -281,13 +478,23 @@ anova(E) # Rien de significatif
 
 #Sans interaction avec Hini:
 E <- lmerTest::lmer( Mtot ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
-anova(E) #Hauteurini tendance a etre significatif, InteractionStress:Brout significatif
+anova(E) #Hauteurini tendance a etre significatif, Interaction Stress*Brout significatif
 summary(E)
 
 #Si on retire Hini
+ERS$Brout <- relevel(ERS$Brout, ref="NoBrout")
+ERS$Stress <- relevel(ERS$Stress, ref="NoStress")
 E <- lmerTest::lmer( Mtot ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
-anova(E) #Interaction Stress:Brout significatif
-summary(E)
+anova(E) #Interaction Stress*Brout significatif
+summary(E) #Brout*Stress1 significatif et tendance Brout*Stress2 (comparaison avec NoStress)
+
+#Avec Stress1 comme valeur de base de reference
+ERS$Stress <- relevel(ERS$Stress, ref="Stress1")
+E2 <- lmerTest::lmer(Mtot ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
+summary(E2) #Tendance Brout*Stress2 (comparaison avec stress1)
+
+##Conclusion: Différence entre Stress1 et NoStress est plus grande chez Brout que NoBrout
+#Mais la tendance est inversée --> Mtot diminue avec Stress pour NonBrout mais augmente avec Brout
 
 ##Vérifier résidus en incluant les effets aléatoires (effet du design)
 plot(E) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
@@ -300,12 +507,14 @@ shapiro.test(resid(E)) #ok
 ####Ratio ERABLES####
 
 #Boxplot ratio 
-boxplot(Ratio~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, main = "Ratio Erables", 
+boxplot(Ratio~Brout+Stress,data=ERS,cex.axis=0.5,las=2, main = "Ratio Erables", 
         xlab="",ylab="Masse tot")
 
 ##Modele avec plan en tiroir
 G <- lmerTest::lmer( Ratio ~ Stress*Brout*Hauteurini + (1|Bloc/Stress), data = ERS)
 anova(G) #Rien significatif, tendance de Brout et Interaction Brout:Hauteurini
+##Si on garde ce modele en raison de la tendance de l'interaction avec Hauteurini,
+#on voit une tendance de ratio plus petit pour les plants broutés 
 
 ##Modele avec plan en tiroir sans interaction Hini
 G <- lmerTest::lmer( Ratio ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
@@ -313,6 +522,25 @@ anova(G) #Rien significatif
 
 ##Modele avec plan en tiroir sans Hini
 G <- lmerTest::lmer( Ratio ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
+anova(G) #Rien significatif
+
+#Visualiser tendance de l'effet Brout 
+boxplot(Ratio~Brout,data=ERS,cex.axis=0.5, col = color,las=2, main = "Ratio Erables", 
+        xlab="",ylab="Ratio") #Outlier, essayer de l'enlever
+
+#Enlever le outlier
+ERS1 <- ERS[-13, ]
+
+#Modèle avec plan en tiroir sans le outlier
+G <- lmerTest::lmer( Mtot ~ Stress*Brout*Hauteurini + (1|Bloc/Stress), data = ERS1)
+anova(G) #Rien significatif 
+
+##Modele avec plan en tiroir sans interaction Hini
+G <- lmerTest::lmer( Ratio ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS1)
+anova(G) #Rien significatif
+
+##Modele avec plan en tiroir sans Hini
+G <- lmerTest::lmer( Ratio ~ Stress*Brout + (1|Bloc/Stress), data = ERS1)
 anova(G) #Rien significatif
 
 ##Vérifier résidus 
@@ -323,6 +551,82 @@ qqnorm(resid(G)) #Graphique de normalité ok
 qqline(resid(G))
 shapiro.test(resid(G)) #ok
 
+
+##MASSE RACINAIRE##
+
+#Boxplot masse racine
+boxplot(Mracine~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, 
+        main = "Masses racinaire erables", ylab="Masse racinaire", xlab="") 
+
+##Modele avec plan en tiroir
+EE <- lmerTest::lmer( Mracine ~ Stress*Brout*Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(EE) #Rien significatif
+
+##Modele avec plan en tiroir sans interaction Hini
+EE <- lmerTest::lmer( Mracine ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(EE) #Hini non significatif
+
+##Modele avec plan en tiroir sans Hini
+ERS$Brout <- relevel(ERS$Brout, ref="NoBrout")
+ERS$Stress <- relevel(ERS$Stress, ref="NoStress")
+EE <- lmerTest::lmer( Mracine ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
+anova(EE) #Stress*Brout significatif
+summary(EE) #Stress1*Brout significatif (comparaison avec NoStress)
+
+##Stress1 en reference
+ERS$Brout <- relevel(ERS$Brout, ref="NoBrout")
+ERS$Stress <- relevel(ERS$Stress, ref="Stress1")
+EE <- lmerTest::lmer( Mracine ~ Stress*Brout + (1|Bloc/Stress), data = ERS)
+summary(EE) #Stress2*Brout significatif (Comparaison avec Stress1)
+
+##Vérifier résidus 
+plot(EE) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(EE) ~ Stress*Brout*Prov, data = ERS) #ok
+
+qqnorm(resid(EE)) #Graphique de normalité ok
+qqline(resid(EE))
+shapiro.test(resid(EE)) #ok
+
+  
+##MASSE AERIENNE##
+  
+#Boxplot masse racine
+boxplot(Maerien~Brout+Stress,data=ERS,cex.axis=0.5, col = color,las=2, 
+          main = "Masses aeriennes erables", ylab="Masse aerienne", xlab="") 
+
+##Modele avec plan en tiroir
+FF <- lmerTest::lmer( Maerien ~ Stress*Brout*Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(FF) #pas interaction avec Hini
+
+##Modele sans interaction Hini
+FF <- lmerTest::lmer( Maerien ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
+anova(FF) #Hauteurini significatif, effet Stress*Brout
+
+##Reference NoStress
+ERS$Brout <- relevel(ERS$Brout, ref="NoBrout")
+ERS$Stress <- relevel(ERS$Stress, ref="NoStress")
+ERS$Prov <- relevel(ERS$Prov, ref="2018")
+FF <- lmerTest::lmer(Maerien ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
+summary(FF) #Stress1*Brout significatif et Stress2*Brout (comparaison avec NoStress)
+
+#Reference Stress1
+ERS$Stress <- relevel(ERS$Stress, ref="Stress1")
+FF <- lmerTest::lmer(Maerien ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = ERS)
+summary(FF) #Stress2*Brout pas significativement different de Stress1
+
+##Conclusion Ratio, aerien et racinaire##
+ERSNoBrout<-filter(ERS,Brout=="NoBrout") 
+mean(ERSNoBrout$Maerien) #26
+mean(ERSNoBrout$Mracine) #17
+mean(ERSNoBrout$Ratio) #1.69
+
+ERSBrout<-filter(ERS,Brout=="Brout")
+mean(ERSBrout$Maerien) #29
+mean(ERSBrout$Mracine) #21
+mean(ERSBrout$Ratio) # 1.5
+
+# Pas d'effet significatif de Brout sur Maerien ni Mracinaire
+# Tendance que le ratio est plus faible pour les plants broutés non-expliquée...
 
 #################THUYAS########################
 
@@ -339,8 +643,6 @@ ddply(THO, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 #Un replicat pour toutes les combinaisons
 
 #Boxplot masses tot 
-levels(THO$Brout) <- c("NoBrout","Brout")
-levels(THO$Stress) <- c("NoStress","Stress1","Stress2")
 color = c(rep("green",6),rep("yellow",6),rep("red",6))
 boxplot(Mtot~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot Thuyas",
         xlab="", ylab="Masse tot")
@@ -351,11 +653,30 @@ anova(H)
 # Intéraction stress*brout*Hauteurini et stress*brout de significatifs,
 # mais avec des F de 3.24 et 3.44 contre 21.26 pour Hini seul --> garder Hini seul 
 
-#On refait sans interaction avec Hini:
+#On refait sans interaction avec Hini
 H <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = THO)
 anova(H) #Hauteurini, Stress et Brout significatifs
-summary(H) #Je n'arrive pas à voir quel niveau de stress est significativement différent duquel? 
 
+#Regarder quel niveau de stress differe
+THO$Stress <- relevel(THO$Stress, ref="NoStress")
+THO$Brout <- relevel(THO$Brout, ref="NoBrout")
+H <- lmerTest::lmer( Mtot ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = THO)
+summary(H) #Tendance de Stress1 et Stress2 significatif (comparaison avec NoStress)
+
+#Stress1 comme reference
+THO$Stress <- relevel(THO$Stress, ref="Stress1")
+H <- lmerTest::lmer( Mtot ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = THO)
+summary(H) #Stress2 significatif (comparaison avec Stress1)
+
+#Representation effet Stress
+boxplot(Mtot~Stress,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot Thuyas",
+        xlab="", ylab="Masse tot")
+
+#Representation effet Brout
+boxplot(Mtot~Brout,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot Thuyas",
+        xlab="", ylab="Masse tot")
+
+#Representation effet stress et brout
 boxplot(Mtot~Brout+Stress,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot Thuyas",
         xlab="", ylab="Masse tot")
 
@@ -384,7 +705,49 @@ anova(I) #Tendance Stress, Interaction Stress*Brout*Prov significatif
 ##Modele avec plan en tiroir sans Hini
 I <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
 anova(I) #Tendance Stress, Interaction Stress*Brout*Prov significatif
-summary(I)
+
+#Quelle difference tendance stress
+THO$Stress <- relevel(THO$Stress, ref="NoStress")
+I1 <- lmerTest::lmer( Ratio ~ Stress + (1|Bloc/Stress), data = THO)
+summary(I1) #Stress1 different et Tendance Stress2
+THO$Stress <- relevel(THO$Stress, ref="Stress1")
+I1 <- lmerTest::lmer( Ratio ~ Stress + (1|Bloc/Stress), data = THO)
+summary(I1) #Stress2 pas different de Stress1
+
+#Representation effet Stress
+boxplot(Ratio~Stress,data=THO,cex.axis=0.5, col = color,las=2, main = "Masses tot Thuyas",
+        xlab="", ylab="Masse tot")
+#Tendance que la ratio augmente avec stress
+
+##Analyse interaction Stress*Brout*Prov
+
+#Avec Prov2018 comme valeur de base de reference
+THO$Stress <- relevel(THO$Stress, ref="NoStress")
+THO$Prov <- relevel(THO$Prov, ref="2018")
+THO$Brout <- relevel(THO$Brout, ref="NoBrout")
+I2 <- lmerTest::lmer(Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
+summary(I2) #Stress2*Brout*Prov2080 significatif (comparaison avec 2018)
+#Stress2*Brout significatif pour 2018
+
+#Avec Prov2080 comme valeur de base de reference
+THO$Prov <- relevel(THO$Prov, ref="2080")
+I2 <- lmerTest::lmer(Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
+summary(I2) #Rien significatif
+
+#Representation Interaction Stress*Brout Prov 2018
+THO2018<-filter(Masses2,Esp=="THO",Prov=="2018")
+boxplot(Ratio~Brout+Stress,data=THO2018,cex.axis=0.5, col = "green",las=2, main = "Ratio thuyas 2018", 
+        xlab="",ylab="Masse tot")
+
+#Representation Interaction Stress*Brout Prov 2080
+THO2080<-filter(Masses2,Esp=="THO",Prov=="2080")
+boxplot(Ratio~Brout+Stress,data=THO2080,cex.axis=0.5, col = "red",las=2, main = "Ratio thuyas 2080", 
+        xlab="",ylab="Masse tot")
+
+##Interpretation de l'interaction Stress*Brout*Prov
+#Effet Stress2*Brout significativement différent entre 2018 et 2080 =
+#Différence entre Stress2 et NoStress est plus grande pour NoBrout que Brout pour Prov2018
+#Alors que cette différence n'est pas significative pour Prov2080
 
 ##Vérifier résidus 
 plot(I) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
@@ -393,6 +756,116 @@ leveneTest(resid(I) ~ Stress*Brout*Prov, data = THO) #ok
 qqnorm(resid(I)) #Graphique de normalité ok
 qqline(resid(I))
 shapiro.test(resid(I)) #ok
+
+##MASSE RACINAIRE##
+
+#Boxplot masse racine
+boxplot(Mracine~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, 
+        main = "Masses racinaire thuyas", ylab="Masse racinaire", xlab="") 
+
+##Modele avec plan en tiroir
+II <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THO)
+anova(II) #Hauteur ini significatif --> On garde Hiniseul
+
+##Modele avec plan en tiroir sans interaction Hini
+II <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = THO)
+anova(II) #Effet Stress et Brout
+
+#Effet Stress et Brout
+THO$Stress <- relevel(THO$Stress, ref="NoStress")
+II <- lmerTest::lmer( Mracine ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = THO)
+summary(II) #NoBrout plus élevé que Brout
+
+#Stress1 comme reference
+THO$Stress <- relevel(THO$Stress, ref="Stress1")
+II <- lmerTest::lmer( Mracine ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = THO)
+summary(II) #Aucune combinaison de stress n'est significative, on ne peut pas tirer de conclusion
+
+#Representation effet stress et brout
+boxplot(Mracine~Stress+Brout,data=THO,cex.axis=0.5, las=2, 
+        main = "Masses racinaire thuyas", ylab="Masse racinaire", xlab="") 
+
+##Vérifier résidus 
+plot(II) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(II) ~ Stress*Brout*Prov, data = THO) #ok
+
+qqnorm(resid(II)) #Graphique de normalité ok
+qqline(resid(II))
+shapiro.test(resid(II)) #Non Transformation à faire
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TRANSFORMATION A FAIRE
+  
+##MASSE AERIENNE##
+
+#Boxplot masse aerien
+boxplot(Maerien~Brout+Stress+Prov,data=THO,cex.axis=0.5, col = color,las=2, 
+          main = "Masses aeriennes thuyas", ylab="Masse aerienne", xlab="") 
+
+##Modele avec plan en tiroir
+JJ <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THO)
+anova(JJ) #On garde Hiniseul
+
+##Modele avec plan en tiroir sans interaction Hini
+THO$Stress <- relevel(THO$Stress, ref="NoStress")
+JJ <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = THO)
+anova(JJ) #Effet Stress et Brout
+
+#Effet Brout et Stress
+JJ <- lmerTest::lmer( Maerien ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = THO)
+summary(JJ) #NoBrout plus élevé que Brout
+#Stress2 tendance a être plus faible que NoStress
+
+#Stress1 comme reference
+THO$Stress <- relevel(THO$Stress, ref="Stress1")
+JJ <- lmerTest::lmer( Maerien ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = THO)
+summary(JJ) #Stress2 pas significatif
+
+#Representation effet stress et brout
+boxplot(Maerien~Stress+Brout,data=THO,cex.axis=0.5, las=2, 
+        main = "Masses aeriennes thuyas", ylab="Masse aerienne", xlab="") 
+
+##Vérifier résidus 
+plot(JJ) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(JJ) ~ Stress*Brout*Prov, data = THO) #ok
+
+qqnorm(resid(JJ)) #Graphique de normalité ok
+qqline(resid(JJ))
+shapiro.test(resid(JJ)) #ok
+
+##Conclusion Ratio, aerien et racinaire##
+THOStress2<-filter(THO,Stress=="Stress2",Brout=="NoBrout") 
+mean(THOStress2$Maerien) #32
+mean(THOStress2$Mracine) #8
+mean(THOStress2$Ratio) #4.1
+
+THOStress1<-filter(THO,Stress=="Stress1",Brout=="NoBrout")  
+mean(THOStress1$Maerien) #43
+mean(THOStress1$Mracine) #13
+mean(THOStress1$Ratio) #3.8
+
+THONoStress<-filter(THO,Stress=="NoStress",Brout=="NoBrout") 
+mean(THONoStress$Maerien) #50
+mean(THONoStress$Mracine) #17
+mean(THONoStress$Ratio) #3.2
+
+THOBrout<-filter(THO,Stress=="NoStress",Brout=="Brout") 
+mean(THOBrout$Maerien) #31
+mean(THOBrout$Mracine) #10
+mean(THOBrout$Ratio) #3.5
+
+#MTot diminuée par le broutement et le stress
+#Ratio ne change pas ni pour le stress (tendance à augmenter), ni pourle broutement
+#Alors que Maerien et racinaire est diminuée par le stress et le broutement
+# = Maerien est davantage ralentie avec stress que racinaire
+# = Maerien diminué par le broutement ET Mracinaire pour atteindre un meme ratio que non-broute
+
+##Vérifier résidus 
+plot(JJ) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(JJ) ~ Stress*Brout*Prov, data = THO) #ok
+
+qqnorm(resid(JJ)) #Graphique de normalité ok
+qqline(resid(JJ))
+shapiro.test(resid(JJ)) #ok
 
 
 #################PINS########################
@@ -410,8 +883,6 @@ ddply(PIB, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 #Un replicat pour toutes les combinaisons
 
 #Boxplot masses tot 
-levels(PIB$Brout) <- c("NoBrout","Brout")
-levels(PIB$Stress) <- c("NoStress","Stress1","Stress2")
 color = c(rep("green",6),rep("yellow",6),rep("red",6))
 boxplot(Mtot~Brout+Stress+Prov,data=PIB,cex.axis=0.5, col = color,las=2, main = "Masses tot Pins", 
         xlab="", ylab="Masse tot")
@@ -425,6 +896,7 @@ J <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), da
 anova(J) #Hauteurini, Brout significatifs
 summary(J)
 
+#Representation effet Brout
 boxplot(Mtot~Brout,data=PIB,cex.axis=0.5, col = color,las=2, main = "Masses tot Pins", 
         xlab="", ylab="Masse tot")
 
@@ -462,4 +934,93 @@ leveneTest(resid(K) ~ Stress*Brout*Prov, data = PIB) #ok
 qqnorm(resid(K)) #Graphique de normalité --> ok
 qqline(resid(K))
 shapiro.test(resid(K)) #ok
+
+
+##MASSE RACINAIRE##
+
+#Boxplot masse racine
+boxplot(Mracine~Brout+Stress+Prov,data=PIB,cex.axis=0.5, col = color,las=2, 
+        main = "Masses racinaire pins", ylab="Masse racinaire", xlab="") 
+
+##Modele avec plan en tiroir
+KK <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = PIB)
+anova(KK) #Rien significatif
+
+##Modele avec plan en tiroir sans interaction Hini
+KK <- lmerTest::lmer( Mracine ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = PIB)
+anova(KK) #Hauteurini significatif, Effet Brout
+
+#Effet Brout
+PIB$Brout <- relevel(PIB$Brout, ref="NoBrout")
+KK <- lmerTest::lmer( Mracine ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = PIB)
+summary(KK) #NoBrout plus élevé que Brout
+
+#Representation effet brout
+boxplot(Mracine~Brout,data=PIB,cex.axis=0.5, las=2, 
+        main = "Masses racinaire pins", ylab="Masse racinaire", xlab="") 
+
+##Vérifier résidus 
+plot(KK) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(KK) ~ Stress*Brout*Prov, data = PIB) #ok
+
+qqnorm(resid(KK)) #Graphique de normalité ok
+qqline(resid(KK))
+shapiro.test(resid(KK)) #Non transformation à faire
+
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Transformation à faire
+  
+##MASSE AERIENNE##
+  
+#Boxplot masse aerien
+boxplot(Maerien~Brout+Stress+Prov,data=PIB,cex.axis=0.5, col = color,las=2, 
+          main = "Masses aeriennes pins", ylab="Masse aerienne", xlab="") 
+
+##Modele avec plan en tiroir
+LL <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = PIB)
+anova(LL) #Rien significatif
+
+##Modele avec plan en tiroir sans interaction Hini
+LL <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = PIB)
+anova(LL) #Hauteurini significatif, Effet Brout
+
+#Effet Brout
+PIB$Brout <- relevel(PIB$Brout, ref="NoBrout")
+LL <- lmerTest::lmer( Maerien ~ Stress*Brout + Hauteurini + (1|Bloc/Stress), data = PIB)
+summary(LL) #NoBrout plus élevé que Brout
+
+#Representation effet Brout
+boxplot(Maerien~Brout,data=PIB,cex.axis=0.5, las=2, 
+        main = "Masses aeriennes thuyas", ylab="Masse aerienne", xlab="") 
+
+##Vérifier résidus 
+plot(LL) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(LL) ~ Stress*Brout*Prov, data = PIB) #ok
+
+qqnorm(resid(LL)) #Graphique de normalité ok
+qqline(resid(LL))
+shapiro.test(resid(LL)) #ok
+
+##Conclusion Ratio, aerien et racinaire##
+
+PIBNoStress<-filter(PIB,Stress=="NoStress",Brout=="NoBrout") 
+mean(PIBNoStress$Maerien) #21
+mean(PIBNoStress$Mracine) #11
+mean(PIBNoStress$Ratio) #1.9
+
+PIBBrout<-filter(PIB,Stress=="NoStress",Brout=="Brout") 
+mean(PIBBrout$Maerien) #8
+mean(PIBBrout$Mracine) #5
+mean(PIBBrout$Ratio) #1.6
+
+#MTot diminuée par le broutement
+#Ratio ne change pas
+#Alors que Maerien et racinaire sont diminuées par le broutement
+
+##Vérifier résidus 
+plot(LL) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône)
+leveneTest(resid(LL) ~ Stress*Brout*Prov, data = PIB) #ok
+
+qqnorm(resid(LL)) #Graphique de normalité ok
+qqline(resid(LL))
+shapiro.test(resid(LL)) #ok
 
