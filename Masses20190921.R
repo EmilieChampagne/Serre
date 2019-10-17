@@ -158,7 +158,7 @@ qqnorm(resid(B)) #Graphique de normalité ok
 qqline(resid(B))
 shapiro.test(resid(B)) #On vérifie avec un test, faire des transformations au besoin --> ok
 
-##MASSE RACINAIRE##
+####MASSE RACINAIRE####
 
 #Boxplot masse racine
 color = c(rep("green",4),rep("yellow",4),rep("red",4))
@@ -214,6 +214,69 @@ boxplot(Mracine~Stress+Prov,data=CET,cex.axis=0.5, las=2,
         main = "Masses racinaire cerisiers", ylab="Masse racinaire", xlab="") 
 #Diminution de la masse racinaire avec le stress
 #Masse racinaire plus faible prov2080 que 2018
+
+##EC: Attention! Ici, tu as fait le graphique avec CET et non CET_mean. C'est un problème car
+  #ce ne sont pas les mêmes données que tu as analysées.
+  #Ce n'est pas non plus la façon idéale de représenter un résultat. Le boxplot est un graphique
+  #d'exploration. Il est utile pour regarder les tendances, les valeurs extrêmes. Mais le test
+  #statistique regarde une différence de moyenne. Je suggère donc de présenter 
+  #les moyennes des données brutes, ainsi qu'une mesure de variance (un SE ou un intervalle
+  #de confiance).
+  #Ce n'est pas aisé de présenter une interaction triple. Il y a plusieurs groupement différents
+  #qui peuvent se faire, selon ce que tu as envie de présenter. Je t'en propose 1, mais ça peut
+  #être différent:
+library(Rmisc)
+means <- summarySE(CET_mean, measurevar = "Mracine", groupvars = c("Stress", "Brout", "Prov")) 
+    #On obtient les moyennes et SE des données brutes
+
+library(ggplot2)
+library(cowplot)#J'ai copié-collé & adapté un graphique que j'avais déjà fait avec ggplot. Mais on pourrait aussi le
+                  #faire un graphique de base R. Ce sont les résultats que tu vas présenter,
+                  #je te suggère donc d'explorer et de décider comment tu veux coder ton graphique
+                  #(si tu es serrée dans le temps, tu peux aussi prendre l'option facile et reprendre
+                  #ce que j'ai fait.)
+#Une option est de faire un graphique par provenance
+ggplot(means[which(means$Prov == "2018"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1)+
+  scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
+  ylab("Masse racinaire (g)")
+ggplot(means[which(means$Prov == "2050"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1)+
+  scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
+  ylab("Masse racinaire (g)")
+ggplot(means[which(means$Prov == "2080"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1)+
+  scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
+  ylab("Masse racinaire (g)")
+
+#Une autre option est de faire un graphique pour les broutés et les non broutés. On dirait que c'est
+#le traitement qui a le moins d'effet (j'aime bien cette option)
+#J'ai mis les graphiques sur la même échelle pour qu'on voit bien les différences
+ggplot(means[which(means$Brout == "NoBrout"),], aes(x = Stress, y = Mracine, shape=factor(Prov))) +
+  geom_point(size=3, position=position_dodge(width=0.2)) +
+  geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1, position=position_dodge(width=0.2))+
+  scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
+  ylab("Masse racinaire (g)")+
+  ylim(c(5,35))+
+  annotate("text", x = 2, y = 25,label = "Non broutés", size = 5)
+ggplot(means[which(means$Brout == "Brout"),], aes(x = Stress, y = Mracine, shape=factor(Prov))) +
+  geom_point(size=3, position=position_dodge(width=0.2)) +
+  geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1, position=position_dodge(width=0.2))+
+  scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
+  ylab("Masse racinaire (g)")+
+  ylim(c(5,35))+
+  annotate("text", x = 2, y = 25,label = "Broutés", size = 5)
+    #Diviser ainsi ton interaction te permettra de mieux la comprendre
+    #Tu as peut-être remarqué, j'ai utilisé "position_dodge" pour qu'on voit mieux les points (ils se superposaient)
+
+    ##EC: Il y a par contre un problème ici...il y a une interaction avec la hauteur initiale.
+    #Il va falloir que je prenne conseil de Marie-Claude sur la présentation sauf qu'elle est absente.
+    #J'ai une idée de solution, mais entre temps, cette représentation est bonne. N'oublie juste pas
+    #de rapporter l'effet de ta covariable quand il y en a une.
+
 
 ##Vérifier résidus 
 plot(AA) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
