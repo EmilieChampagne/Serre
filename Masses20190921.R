@@ -18,6 +18,10 @@ library(multcompView)
 library(nlme)
 library(lmerTest)
 library(agricolae)
+library(swirl)
+library(Rmisc)
+library(ggplot2)
+library(cowplot)
 
 
 Masses = read.table("C:./Masses.txt",header=TRUE,na.string = "",dec = ",") 
@@ -98,7 +102,13 @@ A <- lmerTest::lmer( Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), da
 anova(A) #Hauteurini est significatif, on garde donc le modèle ainsi. On a un effet stress
 
 #Représentation effet Stress
-boxplot(Mtot~Stress,col="green",data=CET) 
+meansCET_Mtot <- summarySE(CET_mean, measurevar = "Mtot", groupvars = c("Stress")) 
+ggplot(meansCET_Mtot, aes(x = Stress, y = Mtot)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=Mtot-se, ymax=Mtot+se), width=.1)+
+  xlab("Traitement de stress hydrique") +  
+  ylab("Masse totale (g)")
+#Mtot Stress2 plus faible
 
 ##Vérifier résidus en incluant les effets aléatoires (effet du design)
 plot(A) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) --> ok
@@ -126,7 +136,23 @@ anova(B)   #Hauteur ini pas significatif
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
 anova(B) #Provenance et Stress significatif 
 summary(B)
+
+#Représentation de Stress
+meansCET_Ratio <- summarySE(CET_mean, measurevar = "Ratio", groupvars = c("Stress")) 
+ggplot(meansCET_Ratio, aes(x = Stress, y = Ratio)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=Ratio-se, ymax=Ratio+se), width=.1)+
+  xlab("Traitement de stress hydrique") +  
+  ylab("Ratio aérien/racinaire")
 #Ratio de stress2 plus grand que NoStress
+
+#Représentation Stress et Prov
+meansCET_Ratio <- summarySE(CET_mean, measurevar = "Ratio", groupvars = c("Stress", "Prov")) 
+ggplot(meansCET_Ratio, aes(x = Stress, y = Ratio, shape=factor(Prov))) +
+  geom_point(size=3, position=position_dodge(width=0.2)) +
+  geom_errorbar(aes(ymin=Ratio-se, ymax=Ratio+se), width=.1, position=position_dodge(width=0.2))+
+  scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
+  ylab("Ratio aérien/racinaire")
 
 #Savoir quelle différence de Prov est significative (valeur de reference NoStress 2018)
 CET_mean$Prov <- relevel(CET_mean$Prov, ref="2018")
@@ -138,17 +164,6 @@ summary(B1) #Prov 2080 differe de 2018 mais pas 2050-2018
 CET_mean$Prov <- relevel(CET_mean$Prov, ref="2050")
 B1 <- lmerTest::lmer( Ratio ~ Stress*Prov + (1|Bloc/Stress), data = CET_mean)
 summary(B1) #Oui, Prov 2050 diffère de 2080
-
-#Représentation de l'effet stress
-boxplot(Ratio~Stress,las=2,cex.axis=0.7,col="green",xlab="",data=CET)
-
-#Représentation de l'effet Prov
-boxplot(Ratio~Prov,las=2,cex.axis=0.7,xlab="",data=CET) 
-text(c(1,2,3),pos=3, offset=10, c("a","a","b"))
-
-#Représentation de l'effet stress et Prov
-color2 = c(rep("green",2),rep("yellow",2),rep("red",2))
-boxplot(Ratio~Stress+Prov,las=2,cex.axis=0.7,col=color2,xlab="",data=CET) 
 
 ##Vérifier résidus 
 plot(B) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
@@ -210,43 +225,37 @@ summary(AA)
  #2080 Différence entre Stress2 et No Stress n'es pas différente entre Brout et NoBrout
 
 #Representation effet stress et prov
-boxplot(Mracine~Stress+Prov,data=CET,cex.axis=0.5, las=2, 
+barplot(Mracine~Stress+Prov,data=CET_mean,cex.axis=0.5, las=2, 
         main = "Masses racinaire cerisiers", ylab="Masse racinaire", xlab="") 
 #Diminution de la masse racinaire avec le stress
 #Masse racinaire plus faible prov2080 que 2018
 
-##EC: Attention! Ici, tu as fait le graphique avec CET et non CET_mean. C'est un problème car
-  #ce ne sont pas les mêmes données que tu as analysées.
-  #Ce n'est pas non plus la façon idéale de représenter un résultat. Le boxplot est un graphique
-  #d'exploration. Il est utile pour regarder les tendances, les valeurs extrêmes. Mais le test
-  #statistique regarde une différence de moyenne. Je suggère donc de présenter 
-  #les moyennes des données brutes, ainsi qu'une mesure de variance (un SE ou un intervalle
-  #de confiance).
+
   #Ce n'est pas aisé de présenter une interaction triple. Il y a plusieurs groupement différents
   #qui peuvent se faire, selon ce que tu as envie de présenter. Je t'en propose 1, mais ça peut
   #être différent:
-library(Rmisc)
-means <- summarySE(CET_mean, measurevar = "Mracine", groupvars = c("Stress", "Brout", "Prov")) 
-    #On obtient les moyennes et SE des données brutes
 
-library(ggplot2)
-library(cowplot)#J'ai copié-collé & adapté un graphique que j'avais déjà fait avec ggplot. Mais on pourrait aussi le
+meansCET_Mracine <- summarySE(CET_mean, measurevar = "Mracine", groupvars = c("Stress", "Brout", "Prov")) 
+    #On obtient les moyennes et SE des données brutes
+#J'ai copié-collé & adapté un graphique que j'avais déjà fait avec ggplot. Mais on pourrait aussi le
                   #faire un graphique de base R. Ce sont les résultats que tu vas présenter,
                   #je te suggère donc d'explorer et de décider comment tu veux coder ton graphique
                   #(si tu es serrée dans le temps, tu peux aussi prendre l'option facile et reprendre
                   #ce que j'ai fait.)
+
+
 #Une option est de faire un graphique par provenance
-ggplot(means[which(means$Prov == "2018"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
+ggplot(meansCET_Mracine[which(meansCET_Mracine$Prov == "2018"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1)+
   scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
   ylab("Masse racinaire (g)")
-ggplot(means[which(means$Prov == "2050"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
+ggplot(meansCET_Mracine[which(meansCET_Mracine$Prov == "2050"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1)+
   scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
   ylab("Masse racinaire (g)")
-ggplot(means[which(means$Prov == "2080"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
+ggplot(meansCET_Mracine[which(meansCET_Mracine$Prov == "2080"),], aes(x = Stress, y = Mracine, shape=factor(Brout))) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1)+
   scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
@@ -255,14 +264,14 @@ ggplot(means[which(means$Prov == "2080"),], aes(x = Stress, y = Mracine, shape=f
 #Une autre option est de faire un graphique pour les broutés et les non broutés. On dirait que c'est
 #le traitement qui a le moins d'effet (j'aime bien cette option)
 #J'ai mis les graphiques sur la même échelle pour qu'on voit bien les différences
-ggplot(means[which(means$Brout == "NoBrout"),], aes(x = Stress, y = Mracine, shape=factor(Prov))) +
+ggplot(meansCET_Mracine[which(meansCET_Mracine$Brout == "NoBrout"),], aes(x = Stress, y = Mracine, shape=factor(Prov))) +
   geom_point(size=3, position=position_dodge(width=0.2)) +
   geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1, position=position_dodge(width=0.2))+
   scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
   ylab("Masse racinaire (g)")+
   ylim(c(5,35))+
   annotate("text", x = 2, y = 25,label = "Non broutés", size = 5)
-ggplot(means[which(means$Brout == "Brout"),], aes(x = Stress, y = Mracine, shape=factor(Prov))) +
+ggplot(meansCET_Mracine[which(meansCET_Mracine$Brout == "Brout"),], aes(x = Stress, y = Mracine, shape=factor(Prov))) +
   geom_point(size=3, position=position_dodge(width=0.2)) +
   geom_errorbar(aes(ymin=Mracine-se, ymax=Mracine+se), width=.1, position=position_dodge(width=0.2))+
   scale_x_discrete(labels=c("Sans stress", "Stress")) + xlab("Traitement de stress hydrique") +  
