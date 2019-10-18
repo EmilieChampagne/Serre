@@ -135,7 +135,10 @@ anova(B)   #Hauteur ini pas significatif
 ##Modele avec plan en tiroir sans Hini
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
 anova(B) #Provenance et Stress significatif 
-summary(B)
+#summary(B)
+ls_means(B, which = "Prov", pairwise = TRUE) #Le test pour toutes les comparaisons, sans changer le niveau de référence
+ls_means(B, which = "Prov")#Tu pourrais utiliser les valeurs d'estimés ici pour la représentation graphique
+ls_means(B, which = "Stress")#Pour aller voir les valeurs du modèle et leur intervalle de confiance
 
 #Représentation de Stress
 meansCET_Ratio <- summarySE(CET_mean, measurevar = "Ratio", groupvars = c("Stress")) 
