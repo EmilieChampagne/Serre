@@ -22,36 +22,46 @@ library(Rmisc)
 library(ggplot2)
 library(cowplot)
 
+Masses3 <- read.table("./Masses3.txt", header=TRUE, na.string = "", dec = ",") 
 
-Masses = read.table("C:./Masses.txt",header=TRUE,na.string = "",dec = ",") 
-Masses2 <- read.table("./Masses2.txt", header=TRUE, na.string = "", dec = ",") 
+Masses3$Brout <- replace(Masses3$Brout,Masses3$Brout=="0","NoBrout")
+Masses3$Brout <- replace(Masses3$Brout,Masses3$Brout=="1","Brout")
+Masses3$Stress <- replace(Masses3$Stress,Masses3$Stress=="0","NoStress")
+Masses3$Stress <- replace(Masses3$Stress,Masses3$Stress=="1","Stress1")
+Masses3$Stress <- replace(Masses3$Stress,Masses3$Stress=="2","Stress2")
 
-Masses2$Brout <- replace(Masses2$Brout,Masses2$Brout=="0","NoBrout")
-Masses2$Brout <- replace(Masses2$Brout,Masses2$Brout=="1","Brout")
-Masses2$Stress <- replace(Masses2$Stress,Masses2$Stress=="0","NoStress")
-Masses2$Stress <- replace(Masses2$Stress,Masses2$Stress=="1","Stress1")
-Masses2$Stress <- replace(Masses2$Stress,Masses2$Stress=="2","Stress2")
+Masses3$Prov <- as.factor(as.character(Masses3$Prov))
+Masses3$Bloc <- as.factor(as.character(Masses3$Bloc))
+Masses3$Brout <- as.factor(as.character(Masses3$Brout))
+Masses3$Stress <- as.factor(as.character(Masses3$Stress))
 
-Masses2$Prov <- as.factor(as.character(Masses2$Prov))
-Masses2$Bloc <- as.factor(as.character(Masses2$Bloc))
-Masses2$Brout <- as.factor(as.character(Masses2$Brout))
-Masses2$Stress <- as.factor(as.character(Masses2$Stress))
+Masses3$Hauteurini <- Masses3$Hauteurini
 
-Masses2$Hauteurini <- Masses2$Hauteurini
+str(Masses3)
 
-str(Masses2)
+CET<-filter(Masses3,Esp=="CET")
+CHR<-filter(Masses3,Esp=="CHR")
+ERS<-filter(Masses3,Esp=="ERS")
+THO<-filter(Masses3,Esp=="THO")
+PIB<-filter(Masses3,Esp=="PIB")
 
-CET<-filter(Masses2,Esp=="CET")
-CHR<-filter(Masses2,Esp=="CHR")
-ERS<-filter(Masses2,Esp=="ERS")
-THO<-filter(Masses2,Esp=="THO")
-PIB<-filter(Masses2,Esp=="PIB")
+Masses3Temoin<-filter(Masses3,Brout=="NoBrout",Stress=="NoStress",Prov=="2018")
 
 #################TOUTES ESPECES###################
 
-boxplot(Mtot~Brout+Esp,data=Masses2,cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
-boxplot(Mtot~Stress+Esp,data=Masses2,cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
-boxplot(Mtot~Bloc*Esp,data=Masses2, cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
+boxplot(Mtot~Brout+Esp,data=Masses3,cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
+boxplot(Mtot~Stress+Esp,data=Masses3,cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
+boxplot(Mtot~Bloc*Esp,data=Masses3, cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
+
+##Ratio Temoin##
+boxplot(Ratio~Esp, data=Masses3Temoin, ylab="Ratio", xlab="Espèces")
+meansMasses3_Temoin <- summarySE(Masses3Temoin, measurevar = "Ratio", groupvars = c("Esp")) 
+ggplot(meansMasses3_Temoin, aes(x = Esp, y = Ratio)) +
+  geom_point(size=3) +
+  geom_errorbar(aes(ymin=Ratio-se, ymax=Ratio+se), width=.1)+
+  xlab("Espèces") +  
+  ylab("Ratio aérien/racinaire")
+
 
 #################CERISIERS########################
 
@@ -1094,6 +1104,31 @@ qqnorm(resid(JJ)) #Graphique de normalité ok
 qqline(resid(JJ))
 shapiro.test(resid(JJ)) #ok
 
+##COMPARAISON AVEC BIOMASSE RETIRÉE##
+THOBROUT<-filter(THO,Brout=="Brout") 
+mean(THOBROUT$Mtot) #37.66
+mean(THOBROUT$Mret) #2.10 g retire
+mean(THOBROUT$Maerien) #29.00 + 2.10 = 31.10 (avec Mretiree)
+mean(THOBROUT$Mracine) #8.66
+
+THONOBROUT<-filter(THO,Brout=="NoBrout") 
+mean(THONOBROUT$Mtot) #54.44
+mean(THONOBROUT$Maerien) #41.53
+mean(THONOBROUT$Mracine) #12.91
+
+THOavecMret <- mutate(THO, Mtotret=Mtot+Mret, Maerien=Maerien+Mret)
+
+##Modele avec plan en tiroir pour Maerien (ajout de Mret)
+JJ1 <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THOavecMret)
+anova(JJ1) #Pas d'interaction significative
+
+##Modele avec plan en tiroir sans interaction Hini pour Maerien (ajout de Mret)
+JJ1 <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = PIBavecMret)
+anova(JJ1) #Brout significatif
+summary(JJ1)
+#Malgre l'ajout de Mret, ceux broutés ont une Maerienne significativement plus basse
+#Leur croissance a donc été ralentie suite au traitement de broutement
+
 
 #################PINS########################
 
@@ -1292,3 +1327,44 @@ leveneTest(resid(LL) ~ Stress*Brout*Prov, data = PIB) #ok
 qqnorm(resid(LL)) #Graphique de normalité ok
 qqline(resid(LL))
 shapiro.test(resid(LL)) #ok
+
+##COMPARAISON AVEC BIOMASSE RETIRÉE##
+PIBBROUT<-filter(PIB,Brout=="Brout") 
+mean(PIBBROUT$Mtot) #13.05
+mean(PIBBROUT$Mret) #4.06 (Mretiree)
+mean(PIBBROUT$Maerien) #8.29 + 4.06 = 12.35 (avec Mretiree)
+mean(PIBBROUT$Mracine) #4.77
+
+PIBNOBROUT<-filter(PIB,Brout=="NoBrout") 
+mean(PIBNOBROUT$Mtot) #32.03
+mean(PIBNOBROUT$Maerien) #20.82
+mean(PIBNOBROUT$Mracine) #11.22
+
+PIBavecMret <- mutate(PIB, Mtotret=Mtot+Mret, Maerien=Maerien+Mret)
+
+##Modele avec plan en tiroir pour Maerien (ajout de Mret)
+LL1 <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = PIBavecMret)
+anova(LL1) #Rien significatif
+
+##Modele avec plan en tiroir sans interaction Hini pour Maerien (ajout de Mret)
+LL1 <- lmerTest::lmer( Maerien ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = PIBavecMret)
+anova(LL1) #Hauteurini significatif, Effet Brout
+summary(LL1)
+#Malgre l'ajout de Mret, ceux broutés ont une Maerienne significativement plus basse
+#Leur croissance a donc été ralentie suite au traitement de broutement
+
+##SURVIE PINS##
+MortPIB <- read.table("./MortPIB.txt", header=TRUE, na.string = "", dec = ",") 
+MortPIB$Prov <- as.factor(as.character(MortPIB$Prov))
+MortPIB$Brout <- as.factor(as.character(MortPIB$Brout))
+MortPIB$Stress <- as.factor(as.character(MortPIB$Stress))
+MortPIB$Bloc <- as.factor(as.character(MortPIB$Bloc))
+
+Z <- glm(Mort ~ Stress + Brout + Prov + Bloc, data = MortPIB, family = binomial(link='logit'))
+summary(Z)
+anova(Z, test="Chisq")
+#Mortalite plus grande chez les pins broutés
+#Tendance de l'effet du bloc 
+
+MortPIB = data.frame(Brout = "1")
+predict(Z, MortPIB, type="response")
