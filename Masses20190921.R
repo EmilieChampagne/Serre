@@ -3,6 +3,8 @@
 # Turgeon Roxanne 
 # Initiation a la recherche / Migration assistee / Broutement / Stress_hydrique / Serre
 
+#EC: Ce commentaire est ajouté pour faire un exemple de l'utilisation de GitHub...
+
 dev.off()
 remove(list = ls())
 
