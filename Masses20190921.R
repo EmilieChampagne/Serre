@@ -21,6 +21,7 @@ library(agricolae)
 library(Rmisc)
 library(ggplot2)
 library(cowplot)
+library(MASS)
 
 Masses3 <- read.table("./Masses3.txt", header=TRUE, na.string = "", dec = ",") 
 
@@ -53,7 +54,7 @@ boxplot(Mtot~Brout+Esp,data=Masses3,cex.axis=0.5, las=2, ylab="Masse tot", xlab=
 boxplot(Mtot~Stress+Esp,data=Masses3,cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
 boxplot(Mtot~Bloc*Esp,data=Masses3, cex.axis=0.5, las=2, ylab="Masse tot", xlab="")
 
-##Ratio Temoin##
+##Ratio Toutes espèces sans traitement (Temoin) ##
 boxplot(Ratio~Esp, data=Masses3Temoin, ylab="Ratio", xlab="Espèces")
 meansMasses3_Temoin <- summarySE(Masses3Temoin, measurevar = "Ratio", groupvars = c("Esp")) 
 ggplot(meansMasses3_Temoin, aes(x = Esp, y = Ratio)) +
@@ -146,6 +147,17 @@ anova(B)   #Hauteur ini pas significatif
 B <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
 anova(B) #Provenance et Stress significatif 
 
+###TEST CONTRASTE (????)
+RatioCETProv <- emmeans(B,"Prov")
+contrast(RatioCETProv, 'tukey') %>%
+  broom::tidy() %>%
+  head(6)
+#OU (???)
+options(contrasts=c("contr.sdif","contr.sdif"))
+BB <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CET_mean)
+summary(BB)
+anova(BB)
+
 #summary
 ls_means(B, which = "Prov", pairwise = TRUE) #Le test pour toutes les comparaisons, sans changer le niveau de référence
 #Prov 2050-2080 et 2018-2080 différents
@@ -168,6 +180,7 @@ ggplot(meansCET_Ratio, aes(x = Prov, y = Ratio)) +
   geom_errorbar(aes(ymin=Ratio-se, ymax=Ratio+se), width=.1)+
   xlab("Provenance") +  
   ylab("Ratio aérien/racinaire")
+
 
 ##Vérifier résidus 
 plot(B) #Homogénéité des variances, on ne doit pas voir de patron particulier (cône) ok
@@ -898,6 +911,7 @@ anova(I) #Tendance Stress, Interaction Stress*Brout*Prov significatif
 ##Modele avec plan en tiroir sans Hini
 I <- lmerTest::lmer( Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
 anova(I) #Tendance Stress, Interaction Stress*Brout*Prov significatif
+summary(I)
 
 #Representation Stress*Brout*Prov
 meansTHO_ratio <- summarySE(THO, measurevar = "Ratio", groupvars = c("Stress", "Brout", "Prov")) 
@@ -925,18 +939,20 @@ THO$Stress <- relevel(THO$Stress, ref="NoStress")
 THO$Prov <- relevel(THO$Prov, ref="2018")
 THO$Brout <- relevel(THO$Brout, ref="NoBrout")
 I <- lmerTest::lmer(Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
-summary(I) #Stress2*Brout*Prov2080 significatif (comparaison avec 2018)
+summary(I) #Stress2*Brout*Prov2080 significatif et tendance 2050 (comparaison avec 2018)
 #Stress2*Brout significatif pour 2018
 
-#Avec Prov2080 comme valeur de base de reference
+#Regarder si difference entre Prov2080 et 2050
 THO$Prov <- relevel(THO$Prov, ref="2080")
 I <- lmerTest::lmer(Ratio ~ Stress*Brout*Prov + (1|Bloc/Stress), data = THO)
-summary(I) #Rien significatif
+summary(I) #Non
 
 ##Interpretation de l'interaction Stress*Brout*Prov
-#Effet Stress2*Brout significativement différent entre 2018 et 2080 =
-#Différence entre Stress2 et NoStress est plus grande pour NoBrout que Brout pour Prov2018 (sens inverse)
-#Alors que cette différence n'est pas significative pour Prov2080
+#Effet Stress2*Brout significativement différent entre 2018 et 2080 (et tendance 2050) =
+#Différence entre Stress2 et NoStress est plus grande pour NoBrout que Brout pour Prov2018
+#Pas significatif pour Brout?
+#Alors que cette différence n'est pas significative pour Prov2080 ni 2050
+#Donc seule différence significative est un augmentation du ratio chez Prov2018 non broutés avec stress hydrique élevé
 
 #Selon graph
 #Effet surtout pour 2018
@@ -1363,8 +1379,38 @@ MortPIB$Bloc <- as.factor(as.character(MortPIB$Bloc))
 Z <- glm(Mort ~ Stress + Brout + Prov + Bloc, data = MortPIB, family = binomial(link='logit'))
 summary(Z)
 anova(Z, test="Chisq")
-#Mortalite plus grande chez les pins broutés
+#Mortalite plus grande chez les pins broutés (une seule mortalité chez un pin non brouté)
 #Tendance de l'effet du bloc 
 
-MortPIB = data.frame(Brout = "1")
-predict(Z, MortPIB, type="response")
+meansPIB_Mort<- MortPIB %>% 
+  group_by(Brout, Bloc) %>%
+  summarise(Mortalite = sum(Mort))
+meansPIB_Mort <- meansPIB_Mort[-11, ]
+
+ggplot(meansPIB_Mort, aes(x = Bloc, y = Mortalite)) +
+  geom_point(size=3) +
+  xlab("Blocs") +  
+  ylab("Nombre de mortalités")
+
+#Representation de la mortalite par Brout et Bloc
+meansPIB_Mort<- MortPIB %>% 
+  group_by(Brout, Bloc) %>%
+  summarise(Mortalite = sum(Mort))
+meansPIB_Mort <- meansPIB_Mort[-11, ]
+
+ggplot(meansPIB_Mort, aes(x = Bloc, y = Mortalite, shape=Brout)) +
+  geom_point(size=3) +
+  xlab("Blocs") +  
+  ylab("Nombre de mortalités")
+
+#Representation de la mortalite seulement par tendance Bloc
+meansPIB_Mort<- MortPIB %>% 
+  group_by(Bloc) %>%
+  summarise(Mortalite = sum(Mort))
+meansPIB_Mort <- meansPIB_Mort[-6, ]
+
+ggplot(meansPIB_Mort, aes(x = Bloc, y = Mortalite)) +
+  geom_point(size=3) +
+  xlab("Blocs") +  
+  ylab("Nombre de mortalités")
+#Bloc 3, 4 et 5 semblent avoir plus de mortalité
