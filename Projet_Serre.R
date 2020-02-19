@@ -1,4 +1,4 @@
-#Automne - 2019
+#2019-2020
 #Turgeon Roxanne 
 #Initiation a la recherche / Migration assistee / Broutement / Stress_hydrique / Serre
 #----
@@ -19,7 +19,6 @@ library(nlme)
 library(lmerTest)
 library(agricolae)
 library(Rmisc)
-library(ggplot2)
 library(cowplot)
 library(MASS)
 library(gridExtra)
@@ -123,8 +122,8 @@ ggplot(CET_Mtot_mod, aes(x = Stress, y = lsmean, col=Stress)) +
   geom_point(size=4, position=position_dodge(width=0.4)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
-  scale_color_manual(values=c("limegreen", "lightcoral"),labels=c("Non stressé", "Stressé"))+
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_color_manual(values=c("limegreen", "lightcoral"),labels=c("Non stress?", "Stress?"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   scale_y_continuous(limits = c(0,75), expand = expand_scale()) +
   xlab("Traitement de stress hydrique") +  
   ylab("Masse (g)") +
@@ -185,7 +184,7 @@ ggplot(meansCET_Ratio, aes(x = Prov, y = Ratio)) +
   theme_classic() +
   geom_errorbar(aes(ymin=Ratio-se, ymax=Ratio+se), width=.1)+
   xlab("Provenance") +  
-  ylab("Ratio aérien/racinaire") +
+  ylab("Ratio a?rien/racinaire") +
   geom_text(label = c("a","a","b"), vjust= -5)
 
 #Representation Prov avec les estimations du modele
@@ -222,7 +221,7 @@ anova_AA <- anova(AA) #Interaction avec Hini significatif --> On garde le modele
 #Ici on regarde seulement Stress*Brout*Prov
 lsmeans(AA, pairwise~Stress*Brout*Prov)
 
-#Combinaisons différentes significativement
+#Combinaisons diff?rentes significativement
 #Stress2,Brout,2018 - NoStress,NoBrout,2050 *
 #NoStress,Brout,2080 - NoStress,NoBrout,2050
 #Stress2,NoBrout,2080 - NoStress,NoBrout,2050 *
@@ -254,7 +253,7 @@ ggplot(CET_Mracine_mod, aes(x = Stress, y = lsmean, shape=factor(Prov),color=Bro
   xlab("Provenance") +  
   ylab("Masse racinaire (g)") +
   labs(shape="Provenance", colour="Broutement") +
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   geom_text(aes(x=Stress, y=upper.CL+1),
             label = c("ab","b","a","ab","ab","ab",   "b","ab","b","b","ab","b"),  
             position=position_dodge(width=0.4), show.legend=F) 
@@ -268,7 +267,7 @@ Graph_2050<-ggplot(CET_Mracine_mod [which(meansCET_Mracine$Prov == "2050"),], ae
   ylab("Masse racinaire (g)") +
   labs(colour="Broutement") +
   ylim(0,48)+
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   geom_text(aes(x=Stress, y=upper.CL+2),
             label = c("a","ab","b","b"),  
             position=position_dodge(width=0.4), show.legend=F) 
@@ -282,7 +281,7 @@ Graph_2018<-ggplot(CET_Mracine_mod [which(meansCET_Mracine$Prov == "2018"),], ae
   ylab("Masse racinaire (g)") +
   labs(colour="Broutement") +
   ylim(0,48)+
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   geom_text(aes(x=Stress, y=upper.CL+2),
             label = c("ab","ab","ab","b"),  
             position=position_dodge(width=0.4), show.legend=F) 
@@ -296,8 +295,8 @@ Graph_2080<-ggplot(CET_Mracine_mod [which(meansCET_Mracine$Prov == "2080"),], ae
   ylab("Masse racinaire (g)") +
   ylim(0,48)+
   labs(colour="Broutement") +
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
-  scale_color_discrete(labels=c("Brouté", "Non brouté")) +
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
+  scale_color_discrete(labels=c("Brout?", "Non brout?")) +
   geom_text(aes(x=Stress, y=upper.CL+2),
             label = c("ab","b","b","ab"),  
             position=position_dodge(width=0.4), show.legend=F)
@@ -360,9 +359,9 @@ ggplot(CET_Maerien_mod, aes(x = Stress, y = lsmean, color=Brout)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   labs(colour="Broutement") +
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   xlab("Traitement de stress hydrique") +  
-  ylab("Masse aérienne (g)") 
+  ylab("Masse a?rienne (g)") 
 
 ##Verifier residus 
 plot(BB) #Homogeneite des variances, on ne doit pas voir de patron particulier (cone) ok
@@ -446,10 +445,10 @@ ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=factor(Prov),col=Stress))
   geom_point(size=4, position=position_dodge(width=0.4)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
-  scale_shape_manual(values=c(10, 19, 1),labels=c("Nord", "Intermédiaire","Sud"))+
-  scale_color_manual(values=c("limegreen", "lightcoral"),labels=c("Non stressé", "Stressé"))+
+  scale_shape_manual(values=c(10, 19, 1),labels=c("Nord", "Interm?diaire","Sud"))+
+  scale_color_manual(values=c("limegreen", "lightcoral"),labels=c("Non stress?", "Stress?"))+
   labs(shape="Provenance") +
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   scale_y_continuous(limits = c(0,75), expand = expand_scale()) +
   xlab("Traitement de stress hydrique") +  
   ylab("Masse (g)") +
@@ -541,7 +540,7 @@ ggplot(CHR_LRatio_mod, aes(x = Prov, y = lsmean)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
   theme_classic() +
   xlab("Provenance") +  
-  ylab("Log du ratio aérien/racinaire")+
+  ylab("Log du ratio a?rien/racinaire")+
   geom_text(aes(x=Prov, y=upper.CL+0.02),
             label = c("a","b","ab")) 
 
@@ -610,7 +609,7 @@ ggplot(CHR_LMracine_mod, aes(x = Stress, y = lsmean, shape=factor(Prov))) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   labs(shape="Provenance") +
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   xlab("Traitement de stress hydrique") +  
   ylab("Log Masse racinaire (g)") +
   geom_text(aes(x=Stress, y=upper.CL+0.05),
@@ -716,10 +715,10 @@ ggplot(ERS_Mtot_mod, aes(x = Stress, y = lsmean, color=Brout)) +
   geom_point(size=4, position=position_dodge(width=0.4)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
-  theme(legend.title=element_blank()) + #Enlever titres des légendes
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+  theme(legend.title=element_blank()) + #Enlever titres des l?gendes
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   scale_y_continuous(limits = c(0,85), expand = expand_scale()) + 
-  scale_color_manual(values=c("limegreen","lightcoral"), labels=c("Non Brouté", "Brouté"))+
+  scale_color_manual(values=c("limegreen","lightcoral"), labels=c("Non Brout?", "Brout?"))+
   xlab("Traitement de stress hydrique") +  
   ylab("Masse (g)") +
   theme(text=element_text(size=18, family="sans"), #Police Arial ("serif" pour Time New Roman)
@@ -802,7 +801,7 @@ ggplot(ERS_Mracine_mod, aes(x = Stress, y = lsmean, color=Brout)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   labs(colour="Broutement") +
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   xlab("Traitement de stress hydrique") +  
   ylab("Masse racinaire (g)") +
   geom_text(aes(x=Stress, y=upper.CL+2),
@@ -852,7 +851,7 @@ ggplot(ERS_Maerien_mod, aes(x = Stress, y = lsmean, color=Brout)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   labs(colour="Broutement") +
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   xlab("Traitement de stress hydrique") +  
   ylab("Masse aerienne estimations modele (g)")
 
@@ -874,8 +873,8 @@ ERS_NoBrout<-filter(ERS,Brout=="NoBrout")
 mean(ERS_NoBrout$Ram) #2,5
 mean(ERS_Brout$Ram) #1,5
 t.test(ERS_Brout$Ram,ERS_NoBrout$Ram, var.equal=TRUE)
-#NON, finalement c'est ceux non broutés qui ont plus de ramille
-#différence de 1, c'est probablement juste la tige apicale comptée de plus chez les noBrout
+#NON, finalement c'est ceux non brout?s qui ont plus de ramille
+#diff?rence de 1, c'est probablement juste la tige apicale compt?e de plus chez les noBrout
 
 #################THUYAS########################
 ####BIOMASSE TOTALE THUYAS####
@@ -927,7 +926,7 @@ ggplot(meansTHO_LMtot, aes(x = Brout, y = LMtot)) +
   ylab("Log Masse totale (g)")
 ls_means(H1, which = "Brout", pairwise = TRUE)
 
-#Effet Brout selon les estimés du modèle
+#Effet Brout selon les estim?s du mod?le
 summary(lsmeans(H1, ~Brout))
 
 #Effet Prov
@@ -944,19 +943,19 @@ ggplot(meansTHO_LMtot, aes(x = Prov, y = LMtot)) +
   xlab("Provenance") +  
   ylab("Log Masse totale (g)") +
   geom_text(aes(x=Prov, y=LMtot+se+0.03),label = c("","",""))
-#Pourtant ce n'est pas ce qu'on observe dans le graph (2018 semble beaucoup plus élevé que 2050 et 2080)
-#Le test statistique n'est pas réalisé sur les données brutes, mais sur les données du modèle
-#Et en plus, ce modèle utilise les valeurs log. 
+#Pourtant ce n'est pas ce qu'on observe dans le graph (2018 semble beaucoup plus ?lev? que 2050 et 2080)
+#Le test statistique n'est pas r?alis? sur les donn?es brutes, mais sur les donn?es du mod?le
+#Et en plus, ce mod?le utilise les valeurs log. 
 #Si on fait :
 ls_means(H1, which = "Prov")
 #on voit les moyennes de LS means pour chacun des niveaux de traitement
-#Le résultat est bien moins surprenant
-#C'est la différence entre présenter les moyennes des modèles vs les données brutes. 
-#C'est un cas assez extrême, mais au lieu des données brutes, 
-#essayer plutôt de présenter les estimés de la table ls means, 
+#Le r?sultat est bien moins surprenant
+#C'est la diff?rence entre pr?senter les moyennes des mod?les vs les donn?es brutes. 
+#C'est un cas assez extr?me, mais au lieu des donn?es brutes, 
+#essayer plut?t de pr?senter les estim?s de la table ls means, 
 #avec leur intervalle de confiance (colonne upper & lower).
 
-#Representation effet Prov avec les estimés du modèle
+#Representation effet Prov avec les estim?s du mod?le
 THO_Mtot_mod <- summary(lsmeans(H1, ~Prov))
 ggplot(THO_Mtot_mod, aes(x = Prov, y = lsmean)) +
   geom_point(size=3) +
@@ -1006,7 +1005,7 @@ ggplot(meansTHO_ratio, aes(x = Stress, y = Ratio, shape=factor(Prov),color=Brout
   geom_errorbar(aes(ymin=Ratio-se, ymax=Ratio+se), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   xlab("Traitement de stress hydrique") +  
-  ylab("Ratio masse aérienne/racinaire")
+  ylab("Ratio masse a?rienne/racinaire")
 
 #Representation Stress*Brout*Prov avec les estimations du modele
 THO_Ratio_mod <- summary(lsmeans(I, ~Prov*Stress*Brout))
@@ -1015,10 +1014,10 @@ ggplot(THO_Ratio_mod, aes(x = Stress, y = lsmean, shape=factor(Prov),color=Brout
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   labs(shape="Provenance", colour="Broutement") +
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
-  scale_color_discrete(labels=c("Brouté", "Non brouté")) +
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
+  scale_color_discrete(labels=c("Brout?", "Non brout?")) +
   xlab("Stress hydrique") +  
-  ylab("Ratio de biomasse aérienne/racinaire")
+  ylab("Ratio de biomasse a?rienne/racinaire")
 
 #Graphique pour les broutes et les non broutes (donnes brutes) 
 ggplot(meansTHO_ratio[which(meansTHO_ratio$Brout == "NoBrout"),], aes(x = Stress, y = Ratio, shape=factor(Prov))) +
@@ -1088,13 +1087,13 @@ ggplot(meansTHO_Mracine, aes(x = Stress, y = Mracine)) +
   ylab("Masse racinaire (g)")+
   geom_text(aes(x=Stress, y=Mracine+se+0.5),label = c("a","b","b")) 
   
-#Representation Stress avec les estimés du modèle
+#Representation Stress avec les estim?s du mod?le
 THO_Mracine_mod <- summary(lsmeans(II, ~Stress))
 ggplot(THO_Mracine_mod, aes(x = Stress, y = lsmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
   theme_classic() +
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   xlab("Traitement de stress hydrique") +  
   ylab("Masse racinaire (g)") +
   geom_text(aes(x=Stress, y=upper.CL+0.5),label = c("a","b","b"))
@@ -1140,15 +1139,15 @@ ggplot(meansTHO_Maerien, aes(x = Stress, y = Maerien)) +
   xlab("Traitement de stress hydrique") +  
   ylab("Masse aerienne (g)")
 
-#Representation Stress avec les estimés du modèle
+#Representation Stress avec les estim?s du mod?le
 THO_Maerien_mod <- summary(lsmeans(JJ, ~Stress))
 ggplot(THO_Maerien_mod, aes(x = Stress, y = lsmean)) +
   geom_point(size=3) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
   theme_classic() +
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   xlab("Traitement de stress hydrique") +  
-  ylab("Masse aérienne (g)") +
+  ylab("Masse a?rienne (g)") +
   geom_text(aes(x=Stress, y=upper.CL+0.5),label = c("a","a","b"))
 
 #Representation effet brout
@@ -1189,7 +1188,7 @@ meansTHO_Maerienmret <- summarySE(THOavecMret, measurevar = "Maerien", groupvars
 lsmeans(JJ1, ~Brout)
 
 ##TEST Graphique Biomasse aerienne et racinaire et totale
-#Données Mtot log retransformer pour comparer avec racine et aérien
+#Donn?es Mtot log retransformer pour comparer avec racine et a?rien
 THO_Mtot_mod <- summary(lsmeans(H1, ~Stress))
 #exp(1) est valeur de e (du log naturel)
 THO_Mtot_mod <- mutate(THO_Mtot_mod, lsmean=exp(lsmean),upper.CL=exp(upper.CL),lower.CL=exp(lower.CL))
@@ -1207,8 +1206,8 @@ ggplot(THO_Biomasse_mod, aes(x = Stress, y = lsmean, color=Biomasse)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.2, position=position_dodge(width=-0.2))+
   theme_classic() +
   scale_color_manual(values=c("limegreen","darkorange", "grey40"),
-                     labels=c("Aérienne", "Racinaire", "Totale"))+
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+                     labels=c("A?rienne", "Racinaire", "Totale"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   scale_y_continuous(limits = c(0,85), expand = expand_scale()) +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
@@ -1225,8 +1224,8 @@ ggplot(THO_Biomasse_mod2, aes(x = Stress, y = lsmean, color=Biomasse)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.2, position=position_dodge(width=-0.2))+
   theme_classic() +
   scale_color_manual(values=c("limegreen","darkorange"),
-                     labels=c("Aérienne", "Racinaire"))+
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+                     labels=c("A?rienne", "Racinaire"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   scale_y_continuous(limits = c(0,50), expand = expand_scale()) +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
@@ -1281,7 +1280,7 @@ ggplot(meansPIB_Mtot, aes(x = Brout, y = Mtot)) +
 #Biomasse totale diminue avec le broutement
 
 
-#Representation avec données du modele
+#Representation avec donn?es du modele
 PIB_Mtot_mod <- summary(lsmeans(J, ~Brout))
 
 PIB_Mtot_mod$Brout <- as.vector(PIB_Mtot_mod$Brout) #get rid of factors
@@ -1295,8 +1294,8 @@ ggplot(PIB_Mtot_mod, aes(x = Brout, y = lsmean)) +
   xlab("Traitement de broutement") +
   theme(text=element_text(size=18, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  scale_x_discrete(labels=c("Non brouté","Brouté"))+
-  scale_y_continuous(limits = c(0,40), expand = expand_scale())  #Enlever espace entre zéro et axe
+  scale_x_discrete(labels=c("Non brout?","Brout?"))+
+  scale_y_continuous(limits = c(0,40), expand = expand_scale())  #Enlever espace entre z?ro et axe
   
 
 ##Verifier residus en incluant les effets aleatoires (effet du design)
@@ -1408,7 +1407,7 @@ ggplot(PIB_Mracine_mod, aes(x = Brout, y = lsmean, color=Brout)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   ylim(0,4)+
-  scale_x_discrete(labels=c("Brouté","Non Brouté"))+
+  scale_x_discrete(labels=c("Brout?","Non Brout?"))+
   xlab("Broutement") +  
   ylab("Masse (g)") 
 
@@ -1454,7 +1453,7 @@ ggplot(PIB_Maerien_mod, aes(x = Brout, y = lsmean, color=Brout)) +
   geom_point(size=3, position=position_dodge(width=0.4)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
-  scale_x_discrete(labels=c("Brouté","Non Brouté"))+
+  scale_x_discrete(labels=c("Brout?","Non Brout?"))+
   xlab("Broutement") +  
   ylab("Masse (g)") 
 
@@ -1487,7 +1486,7 @@ meansPIB_Maerienmret <- summarySE(PIBavecMret, measurevar = "Maerien", groupvars
 
 
 ##TEST Graphique Biomasse racinaire et aerien
-#Données Mracine racine carree retransformer pour comparer avec aérien
+#Donn?es Mracine racine carree retransformer pour comparer avec a?rien
 PIB_Mracine_mod <- summary(lsmeans(KK2, ~Brout))
 PIB_Mracine_mod <- mutate(PIB_Mracine_mod, lsmean=(lsmean)^2,upper.CL=(upper.CL)^2,lower.CL=(lower.CL)^2,
                           Brout=factor(Brout, levels=c("NoBrout","Brout")))
@@ -1496,7 +1495,7 @@ PIB_Maerien_mod <- mutate(PIB_Maerien_mod, Brout=factor(Brout, levels=c("NoBrout
 
 
 #Fusionner 2 dataframes
-PIB_Maerien_mod <- add_column(PIB_Maerien_mod,Biomasse="Aérienne")
+PIB_Maerien_mod <- add_column(PIB_Maerien_mod,Biomasse="A?rienne")
 PIB_Mracine_mod <- add_column(PIB_Mracine_mod,Biomasse="Racinaire")
 PIB_Biomasse_mod <- dplyr::union(PIB_Mracine_mod,PIB_Maerien_mod)
 
@@ -1510,8 +1509,8 @@ ggplot(PIB_Biomasse_mod, aes(x = Brout, y = lsmean, color=Biomasse)) +
   xlab("Traitement de broutement") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
                           panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  scale_x_discrete(labels=c("Non brouté","Brouté"))+
-  scale_y_continuous(limits = c(0,24.5), expand = expand_scale()) + #Enlever espace entre zéro et axe
+  scale_x_discrete(labels=c("Non brout?","Brout?"))+
+  scale_y_continuous(limits = c(0,24.5), expand = expand_scale()) + #Enlever espace entre z?ro et axe
   geom_text(aes(x=c(1.95,0.95), y=upper.CL+0.7),data = PIB_Mracine_mod,label = c("b","a"), show.legend=F) +
   geom_text(aes(x=c(2.05,1.05), y=upper.CL+0.7),size=3.2,data = PIB_Maerien_mod, label = c("B","A"), show.legend=F) 
 
