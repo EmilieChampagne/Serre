@@ -1,8 +1,10 @@
+
 #2019-2020
 #Projet Serre / Broutement / Stress_hydrique / Migration assistee
+
 remove(list = ls())
 
-#####Importation des données####
+#####Importation des donnees####
 library(dplyr)
 library(ggplot2)
 library(plyr) #pour fonction ddply 
@@ -39,7 +41,7 @@ SerreTemoin<-filter(Serre,Brout=="NoBrout",Stress=="NoStress",Prov=="2018")
 
 
 
-#####Exploration des données####
+#####Exploration des donnees####
 #Outliers
 
 boxplot(CET$Mtot, xlab="Masse totale Cerisier")
@@ -90,7 +92,7 @@ boxplot(Mtot~Brout+Stress+Prov,data=CET,cex.axis=0.5, col = color1,las=2,
 
 #Modele avec plan en tiroir
 mod_CET_mtot <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CET_mean)
-#Message veut dire que l'effet aleatoire du bloc est très près de 0 ou nul
+#Message veut dire que l'effet aleatoire du bloc est tr?s pr?s de 0 ou nul
 #On le garde requand meme dans le modele, mais il a peu d'effet
 summary(mod_CET_mtot)
 Anova(mod_CET_mtot, type=3) #Interaction significative avec Hini, on garde ce modele
@@ -98,7 +100,7 @@ Anova(mod_CET_mtot, type=3) #Interaction significative avec Hini, on garde ce mo
 
 #Test a posteriori
 summary(lsmeans(mod_CET_mtot, pairwise~Stress*Brout*Prov))
-#Rien n'est significatif dans le test à posteriori
+#Rien n'est significatif dans le test ? posteriori
 
 #Representation Stress*Brout*Prov avec les estimes du modele
 CET_Mtot_mod <- summary(lsmeans(mod_CET_mtot, ~Stress*Brout*Prov))
@@ -107,7 +109,7 @@ ggplot(CET_Mtot_mod, aes(x = Stress, y = lsmean, color=Brout, shape=Prov)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.5))+
   theme_classic() +
   scale_shape_manual(values=c(10, 19, 1))+
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   scale_y_continuous(limits = c(0,125), expand = expand_scale()) +
   xlab("Traitement de stress hydrique") +  
   ylab("Masse (g)") +
@@ -172,7 +174,7 @@ ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=Prov)) +
   theme_classic() +
   scale_shape_manual(values=c(10, 19, 1))+
   labs(shape="Provenance") +
-  scale_x_discrete(labels=c("Non stressé","Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress ?lev?"))+
   scale_y_continuous(limits = c(0,75), expand = expand_scale()) +
   xlab("Traitement de stress hydrique") +  
   ylab("Masse (g)") +
@@ -230,9 +232,9 @@ ggplot(ERS_Mtot_mod, aes(x = Stress, y = lsmean, color=Brout)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   theme(legend.title=element_blank()) + #Enlever titres des legendes
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   scale_y_continuous(limits = c(0,85), expand = expand_scale()) + 
-  scale_color_manual(values=c("limegreen","lightcoral"), labels=c("Non Brouté", "Brouté"))+
+  scale_color_manual(values=c("limegreen","lightcoral"), labels=c("Non Brout?", "Brout?"))+
   xlab("Traitement de stress hydrique") +  
   ylab("Masse (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
@@ -279,7 +281,7 @@ Anova(mod_THO_mtot, type=3) # Interaction avec Hauteurini, on garde ce modele
 plot(mod_THO_mtot) #Homogeneite des variances ok
 leveneTest(resid(mod_THO_mtot) ~ Stress*Brout*Prov, data = THO) #ok
 
-qqPlot(resid(mod_THO_mtot), main="Non transformé") #Graphique de normalite, pas certaine
+qqPlot(resid(mod_THO_mtot), main="Non transform?") #Graphique de normalite, pas certaine
 shapiro.test(resid(mod_THO_mtot)) #Non, essayer transformation log
 
 #Ajouter variable Transformation log de Mtot
@@ -289,7 +291,7 @@ THO <- mutate(THO, LMtot=log(Mtot))
 mod_THO_mtotlog <- lmerTest::lmer(LMtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THO)
 Anova(mod_THO_mtotlog, type=3) #Rien significatf
 
-#On enlève interaction avec Hini
+#On enl?ve interaction avec Hini
 mod_THO_mtotlog <- lmerTest::lmer(LMtot ~ Stress*Brout*Prov+Hauteurini + (1|Bloc/Stress), data = THO)
 summary(mod_THO_mtotlog)
 Anova(mod_THO_mtotlog, type=3) #Hini significatif, on garde ce modele
@@ -311,7 +313,7 @@ THO <- mutate(THO, sqrtMtot=sqrt(Mtot))
 mod_THO_mtot_sqrt <- lmerTest::lmer( sqrtMtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = THO)
 Anova(mod_THO_mtot_sqrt, type=3) #Rien significatf
 
-#On enlève interaction avec Hini
+#On enl?ve interaction avec Hini
 mod_THO_mtot_sqrt <- lmerTest::lmer( sqrtMtot ~ Stress*Brout*Prov+Hauteurini + (1|Bloc/Stress), data = THO)
 summary(mod_THO_mtot_sqrt)
 Anova(mod_THO_mtot_sqrt, type=3) #Hini significatif, on garde ce modele
@@ -322,7 +324,7 @@ Anova(mod_THO_mtot_sqrt, type=3) #Hini significatif, on garde ce modele
 plot(mod_THO_mtot_sqrt) #Homogeneite des variances ok
 leveneTest(resid(mod_THO_mtot_sqrt) ~ Stress*Brout*Prov, data = THO) #ok
 
-qqPlot(resid(mod_THO_mtot_sqrt), main="Racine carrée") #Graphique normalite ok
+qqPlot(resid(mod_THO_mtot_sqrt), main="Racine carr?e") #Graphique normalite ok
 shapiro.test(resid(mod_THO_mtot_sqrt)) #ok
 
 
@@ -361,9 +363,9 @@ ggplot(PIB_Mtot_mod, aes(x = Stress, y = lsmean, color=Brout)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   theme_classic() +
   theme(legend.title=element_blank()) + #Enlever titres des legendes
-  scale_x_discrete(labels=c("Non stressé","Stress modéré", "Stress élevé"))+
+  scale_x_discrete(labels=c("Non stress?","Stress mod?r?", "Stress ?lev?"))+
   scale_y_continuous(limits = c(0,45), expand = expand_scale()) + 
-  scale_color_manual(values=c("limegreen","lightcoral"), labels=c("Non Brouté", "Brouté"))+
+  scale_color_manual(values=c("limegreen","lightcoral"), labels=c("Non Brout?", "Brout?"))+
   xlab("Traitement de stress hydrique") +  
   ylab("Masse (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
@@ -406,7 +408,7 @@ shapiro.test(resid(mod_PIB_mtot_sqrt)) #non
 
 #BOXCOX pour trouver quelle puissance serait la meilleure pour rendre les donnees normales
 bc<-boxcox(PIB$Mtot ~ 1)
-bc$x[which.max(bc$y)] #lambda max à 0,46 --> semblable a faire une transfo racine carree
+bc$x[which.max(bc$y)] #lambda max ? 0,46 --> semblable a faire une transfo racine carree
 
 
 #Modele Robuste
