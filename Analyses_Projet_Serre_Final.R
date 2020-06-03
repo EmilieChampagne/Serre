@@ -16,12 +16,13 @@ library(MASS) #boxcox
 library(plyr)
 library(tidyverse)
 library(corrplot)
-library(Rmisc)
+library(Rmisc)#pour summarySE
 library(cowplot)
   theme_set(theme_cowplot())
 library(lme4)
 library(corrplot)
-
+library(Hmisc) #violin plot
+  
 #Manipulation du jeu de donnees
 
 #Jeu de donnees des masses
@@ -196,6 +197,21 @@ ggplot(CET_Mtot_mod, aes(x = Stress, y = lsmean)) +
   geom_text(aes(x=Stress, y=upper.CL+2.5),
             label = c("a","b"), size=4.5, show.legend=F)
 
+#Donnees brutes
+summarySE(CET, measurevar = "Mtot", groupvars = c("Stress")) 
+
+#Violin plot Stress avec les donnees brutes (moyenne et intervalle de confiance)
+ggplot(CET, aes(x = Stress, y = Mtot)) +
+  geom_violin(fill="grey") +
+  scale_x_discrete(labels=c("No stress","High stress"))+
+  scale_y_continuous(limits = c(0,110), breaks= seq(0, 100, by = 20), expand = expand_scale()) +
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  stat_summary(fun = mean, geom = "point") + 
+  stat_summary(fun.data = mean_cl_normal, geom = "pointrange") + 
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5))
+
 ##Verifier assomptions de modeles
 plot(mod_CET_mtot) #Homogeneite des variances ok
 qqPlot(resid(mod_CET_mtot)) #Graphique de normalite ok
@@ -240,7 +256,7 @@ ggplot(CET_Ratio_mod, aes(x = Stress, y = lsmean)) +
   geom_text(aes(x=Stress, y=upper.CL+0.2),
           label = c("a","b"), size=4.5, show.legend=F)
 
-#Representation Prov 
+#Representation Prov estimes du modele
 CET_Ratio_mod <- summary(lsmeans(mod_CET_ratio, ~Prov))
 ggplot(CET_Ratio_mod, aes(x = Prov, y = lsmean)) +
   geom_point(size=3) +
@@ -251,6 +267,34 @@ ggplot(CET_Ratio_mod, aes(x = Prov, y = lsmean)) +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+
   geom_text(aes(x=Prov, y=upper.CL+0.05),label = c("a","a","b"))
+
+#Donnees brutes
+summarySE(CET, measurevar = "Ratio", groupvars = c("Stress")) 
+summarySE(CET, measurevar = "Ratio", groupvars = c("Prov")) 
+
+#Violin plot Stress avec les donnees brutes (moyenne et intervalle de confiance)
+ggplot(CET, aes(x = Stress, y = Ratio)) +
+  geom_violin(fill="grey") +
+  scale_x_discrete(labels=c("No stress","High stress"))+
+  scale_y_continuous(limits = c(0,6), breaks= seq(0, 6, by = 1), expand = expand_scale()) +
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  stat_summary(fun = mean, geom = "point") + 
+  stat_summary(fun.data = mean_cl_normal, geom = "pointrange") + 
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5))
+
+#Violin plot Provenance avec les donnees brutes (moyenne et intervalle de confiance)
+ggplot(CET, aes(x = Prov, y = Ratio)) +
+  geom_violin(fill="grey") +
+  scale_x_discrete(labels=c("2018","2050","2080"))+
+  #scale_y_continuous(limits = c(0,6), breaks= seq(0, 6, by = 1), expand = expand_scale()) +
+  xlab("Provenance") +  
+  ylab("Shoot :Root Ratio") +
+  stat_summary(fun = mean, geom = "point") + 
+  stat_summary(fun.data = mean_cl_normal, geom = "pointrange") + 
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5))
 
 ##Verifier assomptions de modeles
 plot(mod_CET_ratio) #Homogeneite des variances ok
@@ -293,6 +337,39 @@ ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=Prov)) +
             label = c("b","a","ab","ab","b","ab"),  
             position=position_dodge(width=0.4),
             show.legend=F, size=4.5) 
+
+#Violin plot Stress*Prov avec les donnees brutes (moyenne et intervalle de confiance)
+ggplot(CHR, aes(x = Stress, y = Mtot, shape=Prov)) +
+  geom_violin(fill="grey", position=position_dodge(width=0.8)) +
+  stat_summary(fun = mean, geom = "point", position=position_dodge(width=0.8)) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "pointrange", position=position_dodge(width=0.8)) + 
+  theme_classic() +
+  scale_shape_manual(values=c(19, 15, 17))+
+  labs(shape="Provenance") +
+  scale_x_discrete(labels=c("No stress","High stress"))+
+  scale_y_continuous(limits = c(0,120), expand = expand_scale()) +
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5)) 
+  geom_text(aes(x=Stress, y=),
+            label = c("b","a","ab","ab","b","ab"),  
+            position=position_dodge(width=0.4),
+            show.legend=F, size=4.5)
+
+#Violin plot Stress*Prov avec les donnees brutes (jitter)
+ggplot(CHR, aes(x = Stress, y = Mtot, shape=Prov)) +
+  geom_violin(fill="grey", position=position_dodge(width=0.8), bw=8) + #trim=FALSE 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5, position=position_dodge(width=0.8))+
+    theme_classic() +
+  scale_shape_manual(values=c(19, 15, 17))+
+  labs(shape="Provenance") +
+  scale_x_discrete(labels=c("No stress","High stress"))+
+  scale_y_continuous(limits = c(0,120), expand = expand_scale()) +
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+          panel.border = element_rect(colour = "black", fill=NA, size=0.5)) 
 
 
 ##Verifier Assomptions de modele
