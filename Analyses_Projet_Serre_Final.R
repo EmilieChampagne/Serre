@@ -319,6 +319,10 @@ lsmeans(mod_CHR_mtot, pairwise~Stress*Prov)
 #NoStress de 2018 et 2050 different
 #Stress2-NoStress de 2050 different
 
+##Verifier Assomptions de modele
+plot(mod_CHR_mtot) #Homogeneite des variances ok
+qqPlot(resid(mod_CHR_mtot)) #Graphique de normalite ok
+
 #Representation Stress*Prov avec les estimes du modele
 CHR_Mtot_mod <- summary(lsmeans(mod_CHR_mtot, ~Prov*Stress))
 ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=Prov)) +
@@ -371,6 +375,76 @@ ggplot(CHR, aes(x = Stress, y = Mtot, shape=Prov)) +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
           panel.border = element_rect(colour = "black", fill=NA, size=0.5)) 
 
+#Une valeur semble tres elevee
+#Essayer d'enlever la valeur plus extremes pour voir(29) 
+CHR2 <- CHR[-29,]
+dotchart(CHR$Mtot,xlab="Mtot CHR", ylab = "Ordre des donnees") 
+dotchart(CHR2$Mtot,xlab="Mtot CHR", ylab = "Ordre des donnees") 
+
+CHR_mean2 <- aggregate(list(CHR2$Mtot,CHR2$Hauteurini,CHR2$Ratio,CHR2$Maerien,CHR2$Mracine, CHR2$N, CHR2$Phen, CHR2$Flav), by= data.frame(CHR2$Stress, CHR2$Brout, CHR2$Prov, CHR2$Bloc), FUN= "mean")
+colnames(CHR_mean2)[1:12] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteurini","Ratio","Maerien","Mracine", "N", "Phen", "Flav")
+
+#Modele avec plan en tiroir
+mod_CHR_mtot2 <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov*Hauteurini + (1|Bloc/Stress), data = CHR_mean2)
+anova(mod_CHR_mtot2) # Garder Hini seul 
+
+#Modele avec plan en tiroir sans interaction Hini
+mod_CHR_mtot2 <- lmerTest::lmer(Mtot ~ Stress*Brout*Prov + Hauteurini + (1|Bloc/Stress), data = CHR_mean2)
+anova(mod_CHR_mtot2) #Hini significatif, on garde ce modele
+#Effet Stress*Prov
+
+#Estimes et intervalles de confiance et test a posteriori
+lsmeans(mod_CHR_mtot2, pairwise~Stress*Prov)
+#NoStress de 2018 et 2050 PAS different (vs avec jeu de donnees incluant la valeur extreme)
+#Stress2-NoStress de 2050 different
+
+#Representation Stress*Prov avec les estimes du modele (sans valeur extreme)
+CHR_Mtot_mod2 <- summary(lsmeans(mod_CHR_mtot2, ~Prov*Stress))
+ggplot(CHR_Mtot_mod2, aes(x = Stress, y = lsmean, shape=Prov)) +
+  geom_point(size=4, position=position_dodge(width=0.4)) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
+  theme_classic() +
+  scale_shape_manual(values=c(10, 19, 1))+
+  labs(shape="Provenance") +
+  scale_x_discrete(labels=c("No stress","High stress"))+
+  scale_y_continuous(limits = c(0,75), expand = expand_scale()) +
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
+  geom_text(aes(x=Stress, y=upper.CL+1.9),
+            label = c("ab","a","ab","ab","b","ab"),  
+            position=position_dodge(width=0.4),
+            show.legend=F, size=4.5) 
+
+#Violin plot Stress*Prov avec les donnees brutes (sans valeur extreme)
+ggplot(CHR2, aes(x = Stress, y = Mtot, shape=Prov)) +
+  geom_violin(fill="grey", position=position_dodge(width=0.8)) +
+  stat_summary(fun = mean, geom = "point", position=position_dodge(width=0.8)) + 
+  stat_summary(fun.data = mean_cl_normal, geom = "pointrange", position=position_dodge(width=0.8)) + 
+  theme_classic() +
+  scale_shape_manual(values=c(19, 15, 17))+
+  labs(shape="Provenance") +
+  scale_x_discrete(labels=c("No stress","High stress"))+
+  scale_y_continuous(limits = c(0,80), expand = expand_scale()) +
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5)) 
+
+#Violin plot Stress*Prov avec les donnees brutes (jitter)
+ggplot(CHR2, aes(x = Stress, y = Mtot, shape=Prov)) +
+  geom_violin(fill="grey", position=position_dodge(width=0.8), bw=8) + #trim=FALSE 
+  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5, position=position_dodge(width=0.8))+
+  theme_classic() +
+  scale_shape_manual(values=c(19, 15, 17))+
+  labs(shape="Provenance") +
+  scale_x_discrete(labels=c("No stress","High stress"))+
+  scale_y_continuous(limits = c(0,80), expand = expand_scale()) +
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5)) 
 
 ##Verifier Assomptions de modele
 plot(mod_CHR_mtot) #Homogeneite des variances ok
@@ -564,7 +638,7 @@ lsmeans(mod_THO_mtot, pairwise~Stress*Brout)
 #NoStressNoBrout differe de Stress2NoBrout 
 #NoStressNoBrout differe de Stress2Brout 
 
-#Representation Stress et Brout avec estimes du modele (sans outlier)
+#Representation Stress et Brout avec estimes du modele 
 THO_Mtot_mod <- summary(lsmeans(mod_THO_mtot, ~Stress*Brout))
 ggplot(THO_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
   geom_point(size=3, position=position_dodge(width=0.4)) +
