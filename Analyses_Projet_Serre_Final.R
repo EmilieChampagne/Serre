@@ -4,12 +4,8 @@
 
 remove(list = ls())
 
-#####IMPORTATION DES DONNEES####
-
-#Packages
-library(dplyr)
+####Packages####
 library(ggplot2)
-library(plyr) #pour fonction ddply 
 library(car) #pour anovas type III
 library(lsmeans) #fonction lsmeans
 library(MASS) #boxcox
@@ -22,38 +18,42 @@ library(cowplot)
 library(lme4)
 library(corrplot)
 library(Hmisc) #violin plot
-  
-#Manipulation du jeu de donnees
+library(colorspace)
+
+#####IMPORTATION DES DONNEES####
 
 #Jeu de donnees des masses
-Serre <- read.table("./Masses3.txt", header=TRUE, na.string = "", dec = ",") 
+#Serre <- read.table("./Masses3.txt", header=TRUE, na.string = "", dec = ",") 
 
-Serre$Brout <- replace(Serre$Brout,Serre$Brout=="0","NoBrout")
-Serre$Brout <- replace(Serre$Brout,Serre$Brout=="1","Brout")
-Serre$Stress <- replace(Serre$Stress,Serre$Stress=="0","NoStress")
-Serre$Stress <- replace(Serre$Stress,Serre$Stress=="1","Stress1")
-Serre$Stress <- replace(Serre$Stress,Serre$Stress=="2","Stress2")
-
-Serre$Prov <- as.factor(as.character(Serre$Prov)) #Definir comme facteur
-Serre$Bloc <- as.factor(as.character(Serre$Bloc))
-Serre$Brout <- as.factor(as.character(Serre$Brout))
-Serre$Stress <- as.factor(as.character(Serre$Stress))
-
-Serre$Brout <- factor(Serre$Brout, levels=c("NoBrout","Brout")) #Reorganiser niveaux facteur Brout
+#Serre$Brout <- replace(Serre$Brout,Serre$Brout=="0","NoBrout")
+#Serre$Brout <- replace(Serre$Brout,Serre$Brout=="1","Brout")
+#Serre$Stress <- replace(Serre$Stress,Serre$Stress=="0","NoStress")
+#Serre$Stress <- replace(Serre$Stress,Serre$Stress=="1","Stress1")
+#Serre$Stress <- replace(Serre$Stress,Serre$Stress=="2","Stress2")
 
 #Jeux de donnees de l'analyse chimique
-chemPIB <- read.table("./PIB.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-chemERS <- read.table("./ERS.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-chemCET <- read.table("./CET.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-chemTHO <- read.table("./THO.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-chemCHR <- read.table("./CHR.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+#chemPIB <- read.table("./PIB.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+#chemERS <- read.table("./ERS.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+#chemCET <- read.table("./CET.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+#chemTHO <- read.table("./THO.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+#chemCHR <- read.table("./CHR.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
 
-chem <- rbind(chemPIB, chemERS, chemCET, chemTHO, chemCHR)
-colnames(chem)[2] <- "ID"
-chem <- subset(chem, select = -ID_lab)
+#chem <- rbind(chemPIB, chemERS, chemCET, chemTHO, chemCHR)
+#colnames(chem)[2] <- "ID"
+#chem <- subset(chem, select = -ID_lab)
 
 #Jeu de donnees fusionnes
-data <- inner_join(Serre, chem, by = "ID")
+#data <- inner_join(Serre, chem, by = "ID")
+
+#Exporter jeu de donnes complet
+#write.table(data, "Donnees_Serre_Complet.txt", sep=",")
+
+#Importer jeu de donnees complet
+data <- read.table("./Donnees_Serre_Complet.txt", header=TRUE, sep = ",") 
+
+data$Prov <- as.factor(as.character(data$Prov)) #Definir comme facteur
+data$Bloc <- as.factor(as.character(data$Bloc))
+data$Brout <- factor(data$Brout, levels=c("NoBrout","Brout")) #Reorganiser niveaux facteur Brout
 
 #Jeu de donnees par espece
 CET<-filter(data,Esp=="CET")
@@ -66,12 +66,11 @@ THO<-filter(data,Esp=="THO")
 cTHO <- na.omit(THO) #Enlever 2 lignes avec des NA pour l'analyse chimique seulement
 
 #Savoir le nb de replicats pour chaque espece
-ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise, N = length(Mtot))
-ddply(CHR, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
-ddply(ERS, c("Stress", "Brout", "Bloc"), summarise,N = length(Mtot))
-ddply(THO, c("Stress", "Brout", "Prov", "Bloc"), summarise, N = length(Mtot))
-ddply(PIB, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
-
+#ddply(CET, c("Stress", "Brout", "Prov", "Bloc"), summarise, N = length(Mtot))
+#ddply(CHR, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
+#ddply(ERS, c("Stress", "Brout", "Bloc"), summarise,N = length(Mtot))
+#ddply(THO, c("Stress", "Brout", "Prov", "Bloc"), summarise, N = length(Mtot))
+#ddply(PIB, c("Stress", "Brout", "Prov", "Bloc"), summarise,N = length(Mtot))
 
 #Pour la majorite des combinaisons, nous n'avons qu'un replicat
 #Pour simplifier les analyses, on fait une moyenne pour les rares cas 
@@ -85,8 +84,14 @@ colnames(CHR_mean)[1:12] <- c("Stress", "Brout", "Prov", "Bloc","Mtot","Hauteuri
 
 
 
-
 #####MASSE - Exploration des donnees####
+
+#Moyennes Masse retiree
+summarySE(CET[which(CET$Brout == "Brout"),], measurevar = "Mret") 
+summarySE(CHR[which(CHR$Brout == "Brout"),], measurevar = "Mret") 
+summarySE(ERS[which(ERS$Brout == "Brout"),], measurevar = "Mret") 
+summarySE(PIB[which(PIB$Brout == "Brout"),], measurevar = "Mret") 
+summarySE(THO[which(THO$Brout == "Brout"),], measurevar = "Mret") 
 
 #Masse totale - Outliers
 boxplot(CET$Mtot, xlab="Masse totale Cerisier")
@@ -182,35 +187,21 @@ anova(mod_CET_mtot) #Fait un anova de type III de Satterthwaite
 #Estimés et intervalle de confiance
 lsmeans(mod_CET_mtot,~Stress)
 
-#Representation Stress avec les estimes du modele
+#Violin plot Stress 
 CET_Mtot_mod <- summary(lsmeans(mod_CET_mtot, ~Stress))
 ggplot(CET_Mtot_mod, aes(x = Stress, y = lsmean)) +
+  geom_violin(data=CET, aes(x = Stress, y = Mtot), fill="grey") +
   geom_point(size=4) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL))+
   theme_classic() +
   scale_x_discrete(labels=c("No stress","High stress"))+
-  scale_y_continuous(limits = c(0,90), expand = expand_scale()) +
+  scale_y_continuous(limits = c(0,110), expand = expand_scale()) +
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+
-  geom_text(aes(x=Stress, y=upper.CL+2.5),
+  geom_text(aes(x=Stress, y=upper.CL+3),
             label = c("a","b"), size=4.5, show.legend=F)
-
-#Donnees brutes
-summarySE(CET, measurevar = "Mtot", groupvars = c("Stress")) 
-
-#Violin plot Stress avec les donnees brutes (moyenne et intervalle de confiance)
-ggplot(CET, aes(x = Stress, y = Mtot)) +
-  geom_violin(fill="grey") +
-  scale_x_discrete(labels=c("No stress","High stress"))+
-  scale_y_continuous(limits = c(0,110), breaks= seq(0, 100, by = 20), expand = expand_scale()) +
-  xlab("Water stress treatment") +  
-  ylab("Mass (g)") +
-  stat_summary(fun = mean, geom = "point") + 
-  stat_summary(fun.data = mean_cl_normal, geom = "pointrange") + 
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
-        panel.border = element_rect(colour = "black", fill=NA, size=0.5))
 
 ##Verifier assomptions de modeles
 plot(mod_CET_mtot) #Homogeneite des variances ok
@@ -240,61 +231,37 @@ lsmeans(mod_CET_ratio,~Stress) #Ratio plus eleve pour stress2
 #Estimés et intervalle de confiance et test aposteriori de Provenance
 lsmeans(mod_CET_ratio,pairwise~Prov) #Ratio plus eleve chez 2080 que 2018 et 2050 
 
-
-#Representation Stress avec les estimes du modele
+#Violin plot Stress (moyenne et IC du modele mais violin des donnees brutes)
 CET_Ratio_mod <- summary(lsmeans(mod_CET_ratio, ~Stress))
 ggplot(CET_Ratio_mod, aes(x = Stress, y = lsmean)) +
+  geom_violin(data=CET, aes(x = Stress, y = Ratio), fill="grey") +
   geom_point(size=4) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL))+
   theme_classic() +
   scale_x_discrete(labels=c("No stress","High stress"))+
-  scale_y_continuous(limits = c(0,4), expand = expand_scale()) +
-  xlab("Water stress treatment") +  
+  scale_y_continuous(limits = c(0,6), expand = expand_scale()) +
+  xlab("Water stress treatment") + 
   ylab("Shoot:root ratio") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+
   geom_text(aes(x=Stress, y=upper.CL+0.2),
-          label = c("a","b"), size=4.5, show.legend=F)
+            label = c("a","b"), size=4.5, show.legend=F)
 
-#Representation Prov estimes du modele
+#Violin plot Provenance (moyenne et IC du modele mais violin des donnees brutes)
 CET_Ratio_mod <- summary(lsmeans(mod_CET_ratio, ~Prov))
 ggplot(CET_Ratio_mod, aes(x = Prov, y = lsmean)) +
-  geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
+  geom_violin(data=CET, aes(x = Prov, y = Ratio), fill="grey") +
+  geom_point(size=4) +
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL))+
   theme_classic() +
-  xlab("Provenance") +  
+  scale_x_discrete(labels=c("2018","2050","2080"))+
+  scale_y_continuous(limits = c(0,6), expand = expand_scale()) +
+  xlab("Provenance") + 
   ylab("Shoot:root ratio") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+
-  geom_text(aes(x=Prov, y=upper.CL+0.05),label = c("a","a","b"))
+  geom_text(aes(x=Prov, y=upper.CL+0.2),label = c("a","a","b"))
 
-#Donnees brutes
-summarySE(CET, measurevar = "Ratio", groupvars = c("Stress")) 
-summarySE(CET, measurevar = "Ratio", groupvars = c("Prov")) 
-
-#Violin plot Stress avec les donnees brutes (moyenne et intervalle de confiance)
-ggplot(CET, aes(x = Stress, y = Ratio)) +
-  geom_violin(fill="grey") +
-  scale_x_discrete(labels=c("No stress","High stress"))+
-  scale_y_continuous(limits = c(0,6), breaks= seq(0, 6, by = 1), expand = expand_scale()) +
-  xlab("Water stress treatment") +  
-  ylab("Mass (g)") +
-  stat_summary(fun = mean, geom = "point") + 
-  stat_summary(fun.data = mean_cl_normal, geom = "pointrange") + 
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
-        panel.border = element_rect(colour = "black", fill=NA, size=0.5))
-
-#Violin plot Provenance avec les donnees brutes (moyenne et intervalle de confiance)
-ggplot(CET, aes(x = Prov, y = Ratio)) +
-  geom_violin(fill="grey") +
-  scale_x_discrete(labels=c("2018","2050","2080"))+
-  #scale_y_continuous(limits = c(0,6), breaks= seq(0, 6, by = 1), expand = expand_scale()) +
-  xlab("Provenance") +  
-  ylab("Shoot :Root Ratio") +
-  stat_summary(fun = mean, geom = "point") + 
-  stat_summary(fun.data = mean_cl_normal, geom = "pointrange") + 
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
-        panel.border = element_rect(colour = "black", fill=NA, size=0.5))
 
 ##Verifier assomptions de modeles
 plot(mod_CET_ratio) #Homogeneite des variances ok
@@ -323,57 +290,26 @@ lsmeans(mod_CHR_mtot, pairwise~Stress*Prov)
 plot(mod_CHR_mtot) #Homogeneite des variances ok
 qqPlot(resid(mod_CHR_mtot)) #Graphique de normalite ok
 
-#Representation Stress*Prov avec les estimes du modele
+#Violin plot Stress*Prov 
 CHR_Mtot_mod <- summary(lsmeans(mod_CHR_mtot, ~Prov*Stress))
 ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=Prov)) +
-  geom_point(size=4, position=position_dodge(width=0.4)) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
+  geom_violin(data=CHR, aes(x = Stress, y = Mtot, fill=Prov), position=position_dodge(width=0.8)) +
+  scale_fill_discrete_qualitative(palette = "Set 2")+
+  geom_point(size=3, position=position_dodge(width=0.8), show.legend = FALSE) +
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend = FALSE)+
   theme_classic() +
-  scale_shape_manual(values=c(10, 19, 1))+
+  scale_shape_manual(values=c(19, 19, 19))+ #10,19,1 pour ronds distincts
   labs(shape="Provenance") +
   scale_x_discrete(labels=c("No stress","High stress"))+
-  scale_y_continuous(limits = c(0,75), expand = expand_scale()) +
+  scale_y_continuous(limits = c(0,120), expand = expand_scale()) +
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  geom_text(aes(x=Stress, y=upper.CL+1.9),
+  geom_text(aes(x=Stress, y=upper.CL+2),
             label = c("b","a","ab","ab","b","ab"),  
-            position=position_dodge(width=0.4),
+            position=position_dodge(width=0.8),
             show.legend=F, size=4.5) 
-
-#Violin plot Stress*Prov avec les donnees brutes (moyenne et intervalle de confiance)
-ggplot(CHR, aes(x = Stress, y = Mtot, shape=Prov)) +
-  geom_violin(fill="grey", position=position_dodge(width=0.8)) +
-  stat_summary(fun = mean, geom = "point", position=position_dodge(width=0.8)) + 
-  stat_summary(fun.data = mean_cl_normal, geom = "pointrange", position=position_dodge(width=0.8)) + 
-  theme_classic() +
-  scale_shape_manual(values=c(19, 15, 17))+
-  labs(shape="Provenance") +
-  scale_x_discrete(labels=c("No stress","High stress"))+
-  scale_y_continuous(limits = c(0,120), expand = expand_scale()) +
-  xlab("Water stress treatment") +  
-  ylab("Mass (g)") +
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
-        panel.border = element_rect(colour = "black", fill=NA, size=0.5)) 
-  geom_text(aes(x=Stress, y=),
-            label = c("b","a","ab","ab","b","ab"),  
-            position=position_dodge(width=0.4),
-            show.legend=F, size=4.5)
-
-#Violin plot Stress*Prov avec les donnees brutes (jitter)
-ggplot(CHR, aes(x = Stress, y = Mtot, shape=Prov)) +
-  geom_violin(fill="grey", position=position_dodge(width=0.8), bw=8) + #trim=FALSE 
-  geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5, position=position_dodge(width=0.8))+
-    theme_classic() +
-  scale_shape_manual(values=c(19, 15, 17))+
-  labs(shape="Provenance") +
-  scale_x_discrete(labels=c("No stress","High stress"))+
-  scale_y_continuous(limits = c(0,120), expand = expand_scale()) +
-  xlab("Water stress treatment") +  
-  ylab("Mass (g)") +
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
-          panel.border = element_rect(colour = "black", fill=NA, size=0.5)) 
 
 #Une valeur semble tres elevee
 #Essayer d'enlever la valeur plus extremes pour voir(29) 
@@ -468,7 +404,6 @@ anova(mod_CHR_ratio) #Rien significatif, tendance Stress
 plot(mod_CHR_ratio) #Homogeneite des variances ok
 qqPlot(resid(mod_CHR_ratio)) #Graphique de normalite ???
 
-
 #Essayer d'enlever trois valeurs plus extreme (30,12,11) 
 CHR_mean2 <- CHR_mean[-30,]
 CHR_mean2 <- CHR_mean2[-12,]
@@ -511,11 +446,13 @@ anova(mod_CHR_Lratio) #Effet Prov, Tendance Stress
 lsmeans(mod_CHR_Lratio,pairwise~Prov)
 #Difference entre 2018 et 2050
 
-#Representation Prov avec les estimations du modele (log)
+#Violin plot Prov (log)
+LCHR <- mutate(CHR, LRatio=log(Ratio))
 CHR_LRatio_mod <- summary(lsmeans(mod_CHR_Lratio, ~Prov))
 ggplot(CHR_LRatio_mod, aes(x = Prov, y = lsmean)) +
+  geom_violin(data=LCHR, aes(x=Prov, y=LRatio), fill="grey")+
   geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL))+
   theme_classic() +
   xlab("Provenance") +  
   ylab("Log shoot:root ratio")+
@@ -523,15 +460,17 @@ ggplot(CHR_LRatio_mod, aes(x = Prov, y = lsmean)) +
         panel.border = element_rect(colour = "black", fill=NA, size=0.5)) +
   geom_text(aes(x=Prov, y=upper.CL+0.05),label = c("a","b","ab"))
 
-#Enlever le log
+#Enlever le log - Violin plot Prov
 CHR_Ratio_mod <- mutate(CHR_LRatio_mod, lsmean=10^(lsmean),lower.CL=10^(lower.CL), upper.CL=10^(upper.CL))
 ggplot(CHR_Ratio_mod, aes(x = Prov, y = lsmean)) +
+  geom_violin(data=CHR, aes(x=Prov, y=Ratio), fill="grey")+
   geom_point(size=3) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL))+
   theme_classic() +
   xlab("Provenance") +  
   ylab("Shoot:root ratio")+
-  geom_text(aes(x=Prov, y=upper.CL+0.05),label = c("a","b","ab"))
+  scale_y_continuous(limits = c(0,2.8), expand = expand_scale()) +
+    geom_text(aes(x=Prov, y=upper.CL+0.08),label = c("a","b","ab"))
 
 #Representation estime modele tendance effet Stress
 CHR_LRatio_mod <- summary(lsmeans(mod_CHR_Lratio, ~Stress))
@@ -574,8 +513,10 @@ lsmeans(mod_ERS_mtot, pairwise~Stress*Brout)
 #Representation Stress*Brout avec les estimes du modele 
 ERS_Mtot_mod <- summary(lsmeans(mod_ERS_mtot, ~Stress*Brout))
 ggplot(ERS_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
-  geom_point(size=3, position=position_dodge(width=0.4)) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
+  geom_violin(data=ERS, aes(x = Stress, y = Mtot, fill=Brout), position=position_dodge(width=0.8)) +
+  scale_fill_discrete_qualitative(palette = "Set 2")+
+  geom_point(size=3, position=position_dodge(width=0.8), show.legend = FALSE) +
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend = FALSE)+
   theme_classic() +
   theme(legend.title=element_blank()) + #Enlever titres des legendes
   scale_x_discrete(labels=c("No stress","Moderate stress", "High stress"))+
@@ -587,7 +528,7 @@ ggplot(ERS_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
   geom_text(aes(x=Stress, y=upper.CL+2),
             label = c("ab","a","ab","ab","b","ab"),  
-            position=position_dodge(width=0.4), size=4.5, show.legend=F)
+            position=position_dodge(width=0.8), size=4.5, show.legend=F)
 
 ##Verifier residus 
 plot(mod_ERS_mtot) #Homogeneite des variances ok
@@ -641,20 +582,22 @@ lsmeans(mod_THO_mtot, pairwise~Stress*Brout)
 #Representation Stress et Brout avec estimes du modele 
 THO_Mtot_mod <- summary(lsmeans(mod_THO_mtot, ~Stress*Brout))
 ggplot(THO_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
-  geom_point(size=3, position=position_dodge(width=0.4)) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
+  geom_violin(data=THO, aes(x=Stress, y=Mtot, fill=Brout), position=position_dodge(width=0.8))+
+  geom_point(size=3, position=position_dodge(width=0.8), show.legend=FALSE) +
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend=FALSE)+
+  scale_fill_discrete_qualitative(palette = "Set 2")+
   theme_classic() +
   theme(legend.title=element_blank()) + #Enlever titres des legendes
   scale_x_discrete(labels=c("No stress","Moderate stress", "High stress"))+
-  scale_y_continuous(limits = c(0,85), expand = expand_scale()) + 
-  scale_shape_manual(values=c(19,17), labels=c("Unbrowsed", "Browsed"))+
+  scale_y_continuous(limits = c(0,100), expand = expand_scale()) + 
+  scale_shape_manual(values=c(19,19), labels=c("Unbrowsed", "Browsed"))+
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  geom_text(aes(x=Stress, y=upper.CL+2),
+  geom_text(aes(x=Stress, y=upper.CL+3),
             label = c("a","ab","b","ab","ab","b"),  
-            position=position_dodge(width=0.4), size=4.5, show.legend=F)
+            position=position_dodge(width=0.8), size=4.5, show.legend=F)
 
 ##Verifier Assomptions de modele
 plot(mod_THO_mtot) #Homogeneite des variances ok
@@ -731,15 +674,16 @@ summary(mod_PIB_mtot)
 anova(mod_PIB_mtot) #Hini significatif on garde ce modele
 #Brout
 
-#Representation effet Brout avec estimes du modele
+#Violin plot effet Brout
 PIB_Mtot_mod <- summary(lsmeans(mod_PIB_mtot, ~ Brout))
 ggplot(PIB_Mtot_mod, aes(x = Brout, y = lsmean)) +
-  geom_point(size=4) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1)+
+  geom_violin(data=PIB, aes(x=Brout, y=Mtot), fill="grey")+
+  geom_point(size=3) +
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL))+
   theme_classic() +
   theme(legend.title=element_blank()) + #Enlever titres des legendes
   scale_x_discrete(labels=c("Unbrowsed","Browsed"))+
-  scale_y_continuous(limits = c(0,45), expand = expand_scale()) + 
+  scale_y_continuous(limits = c(0,65), expand = expand_scale()) + 
   xlab("Browsing treatment") +  
   ylab("Mass (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
@@ -1012,44 +956,42 @@ qqPlot(resid(CET_flav)) #Graphique de normalite ok
 
 ##Modèle avec plan en tiroir pour l'azote
 CHR_N <- lmerTest::lmer(N ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR_mean)
+summary(CHR_N)
 anova(CHR_N) #Effet Stress*brout
 
+#Conditions d'application
+plot(CHR_N) #Homogeneite des variances --> 3 valeurs un peu extremes, échelle jusqu'a 10 = eleve!
+qqPlot(resid(CHR_N)) #Graphique de normalite --> 3 valeurs un peu extremes
+
+
+#Ajouter variable Transformation log de N
+LCHR_mean <- mutate(CHR_mean, LN=log(N))
+
+##Modèle avec plan en tiroir pour l'azote
+CHR_LN <- lmerTest::lmer(LN ~ Stress*Brout*Prov + (1|Bloc/Stress), data = LCHR_mean)
+anova(CHR_LN) #Effet Stress*brout
+
+#Conditions d'application
+plot(CHR_LN) #Homogeneite des variances --> echelle beaucoup mieux ok
+qqPlot(resid(CHR_LN)) #Graphique de normalite --> ok
+
 #Estimes, intervalles de confiance et Test a posteriori
-summary(lsmeans(CHR_N, pairwise~Stress*Brout))
+summary(lsmeans(CHR_LN, pairwise~Stress*Brout))
 #NoStress-Brout differe de Stress2-Brout 
 
 ##Graphique Stress*Brout
-CHR_N_mod <- summary(lsmeans(CHR_N, ~Stress*Brout))
-ggplot(CHR_N_mod, aes(x = Stress, y = lsmean, col=Brout)) +
+CHR_LN_mod <- summary(lsmeans(CHR_LN, ~Stress*Brout))
+ggplot(CHR_LN_mod, aes(x = Stress, y = lsmean, col=Brout)) +
   geom_point(size=4, position=position_dodge(width=0.4)) +
   geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, position=position_dodge(width=0.4))+
   scale_color_manual(values=c("limegreen", "lightcoral"),labels=c("Unbrowsed", "Browsed"))+
   scale_x_discrete(labels=c("No stress","High stress")) +
   xlab("Water stress treatment") +  
-  ylab("Nitrogen concentration (g/kg)") +
-  geom_text(aes(x=Stress, y=upper.CL+0.3),
+  ylab("Log Nitrogen concentration (g/kg)") +
+  geom_text(aes(x=Stress, y=upper.CL+0.05),
             label = c("ab","ab","a","b"),  
             position=position_dodge(width=0.4),
             show.legend=F, size=4.5) 
-
-#Conditions d'application
-plot(CHR_N) #Homogeneite des variances --> 3 valeurs un peu extremes
-qqPlot(resid(CHR_N)) #Graphique de normalite --> 3 valeurs un peu extremes
-
-#Essayer d'enlever 3 valeurs plus extremes (20,21, 36) 
-CHR2_mean <- CHR_mean [-36,]
-CHR2_mean <- CHR2_mean [-21,]
-CHR2_mean <- CHR2_mean[-20,]
-dotchart(CHR_mean$N,xlab="N CHR", ylab = "Ordre des donnees") 
-dotchart(CHR2_mean$N,xlab="N CHR", ylab = "Ordre des donnees") 
-
-##Modèle avec plan en tiroir pour l'azote (sans outlier)
-CHR2_N <- lmerTest::lmer( N ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR2_mean)
-anova(CHR2_N) #Rien de significatif
-
-#Conditions d'application
-plot(CHR2_N) #Homogeneite des variances ok
-qqPlot(resid(CHR2_N)) #Graphique de normalite ok
 
     ####PHENOLS CHENES####
 
@@ -1293,12 +1235,6 @@ qqPlot(resid(THO_flav)) #Graphique de normalite ok
 summary(lmerTest::lmer(Mtot ~ Phen + (1|Bloc/Stress), data = CET_mean))#Significant
 summary(lmerTest::lmer(Mtot ~ Flav + (1|Bloc/Stress), data = CET_mean))
 
-summary(lmerTest::lmer(Maerien ~ Phen + (1|Bloc/Stress), data = CET_mean))#Significant
-summary(lmerTest::lmer(Maerien ~ Flav + (1|Bloc/Stress), data = CET_mean))
-
-summary(lmerTest::lmer(Mracine ~ Phen + (1|Bloc/Stress), data = CET_mean))
-summary(lmerTest::lmer(Mracine ~ Flav + (1|Bloc/Stress), data = CET_mean))
-
 summary(lmerTest::lmer(Hauteur ~ Phen + (1|Bloc/Stress), data = CET_mean))#Tendency
 summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = CET_mean))#Significant
 
@@ -1306,12 +1242,6 @@ summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = CET_mean))#Signi
 ##CHR
 summary(lmerTest::lmer(Mtot ~ Phen + (1|Bloc/Stress), data = CHR_mean))
 summary(lmerTest::lmer(Mtot ~ Flav + (1|Bloc/Stress), data = CHR_mean))#Significant
-
-summary(lmerTest::lmer(Maerien ~ Phen + (1|Bloc/Stress), data = CHR_mean))
-summary(lmerTest::lmer(Maerien ~ Flav + (1|Bloc/Stress), data = CHR_mean))#Significant
-
-summary(lmerTest::lmer(Mracine ~ Phen + (1|Bloc/Stress), data = CHR_mean))
-summary(lmerTest::lmer(Mracine ~ Flav + (1|Bloc/Stress), data = CHR_mean))#Tendency
 
 summary(lmerTest::lmer(Hauteur ~ Phen + (1|Bloc/Stress), data = CHR_mean))
 summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = CHR_mean))#Significant
@@ -1321,12 +1251,6 @@ summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = CHR_mean))#Signi
 summary(lmerTest::lmer(Mtot ~ Phen + (1|Bloc/Stress), data = ERS))#Significant
 summary(lmerTest::lmer(Mtot ~ Flav + (1|Bloc/Stress), data = ERS))#Significant
 
-summary(lmerTest::lmer(Maerien ~ Phen + (1|Bloc/Stress), data = ERS))#Significant
-summary(lmerTest::lmer(Maerien ~ Flav + (1|Bloc/Stress), data = ERS))#Significant
-
-summary(lmerTest::lmer(Mracine ~ Phen + (1|Bloc/Stress), data = ERS))
-summary(lmerTest::lmer(Mracine ~ Flav + (1|Bloc/Stress), data = ERS))
-
 summary(lmerTest::lmer(Hauteur ~ Phen + (1|Bloc/Stress), data = ERS))#Significant
 summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = ERS))#Significant
 
@@ -1334,12 +1258,6 @@ summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = ERS))#Significan
 ##PIB
 summary(lmerTest::lmer(Mtot ~ Phen + (1|Bloc/Stress), data = PIB))#Significant
 summary(lmerTest::lmer(Mtot ~ Flav + (1|Bloc/Stress), data = PIB))#Significant
-
-summary(lmerTest::lmer(Maerien ~ Phen + (1|Bloc/Stress), data = PIB))#Significant
-summary(lmerTest::lmer(Maerien ~ Flav + (1|Bloc/Stress), data = PIB))#Significant
-
-summary(lmerTest::lmer(Mracine ~ Phen + (1|Bloc/Stress), data = PIB))#Significant
-summary(lmerTest::lmer(Mracine ~ Flav + (1|Bloc/Stress), data = PIB))#Significant
 
 summary(lmerTest::lmer(Hauteur ~ Phen + (1|Bloc/Stress), data = PIB))#Significant
 summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = PIB))#Significant
@@ -1349,12 +1267,6 @@ summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = PIB))#Significan
 summary(lmerTest::lmer(Mtot ~ Phen + (1|Bloc/Stress), data = THO))#Significant
 summary(lmerTest::lmer(Mtot ~ Flav + (1|Bloc/Stress), data = THO))
 
-summary(lmerTest::lmer(Maerien ~ Phen + (1|Bloc/Stress), data = THO))#Significant
-summary(lmerTest::lmer(Maerien ~ Flav + (1|Bloc/Stress), data = THO))
-
-summary(lmerTest::lmer(Mracine ~ Phen + (1|Bloc/Stress), data = THO))#Significant
-summary(lmerTest::lmer(Mracine ~ Flav + (1|Bloc/Stress), data = THO))
-
 summary(lmerTest::lmer(Hauteur ~ Phen + (1|Bloc/Stress), data = THO))#Significant
 summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = THO))
 
@@ -1362,5 +1274,26 @@ summary(lmerTest::lmer(Hauteur ~ Flav + (1|Bloc/Stress), data = THO))
 
 
 
+
+
+
+####Suivi Humidite####
+humidite <- read.table("./Suivi_Humidite.txt", header=TRUE, dec = ",") 
+
+stress <- data %>% dplyr::select(ID, Esp, Stress)
+Stress <- c("Stress1", "Stress2")
+ID <- c("PIB-2018-14", "PIB-2018-24") #Ajouter deux plants qui n'etaient pas dans le jeu de donnees car mort
+Esp <- c("PIB", "PIB")
+new_row <- data.frame(ID,Esp, Stress)
+stress <- rbind(stress, new_row) 
+
+humidite <- left_join(humidite, stress, by="ID") 
+
+#Humidite selon date, stress et espece
+Summary_humidite <- summarySE(humidite, measurevar = "humidite", groupvars = c("date",  "Esp", "Stress")) 
+
+#Humidite selon stress et espece (moyenne juin-juillet apres l'ajustement de frequence d'arrosage)
+humidite_fin <- humidite %>% filter(date=="2019-06-26"|date=="2019-07-24") 
+Summary_humidite_fin <- summarySE(humidite_fin, measurevar = "humidite", groupvars = c("Stress","Esp")) 
 
 
