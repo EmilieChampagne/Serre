@@ -19,6 +19,7 @@ library(lme4)
 library(corrplot)
 library(Hmisc) #violin plot
 library(colorspace)
+library(wesanderson) #couleur graphiques
 
 #####IMPORTATION DES DONNEES####
 
@@ -294,19 +295,22 @@ qqPlot(resid(mod_CHR_mtot)) #Graphique de normalite ok
 CHR_Mtot_mod <- summary(lsmeans(mod_CHR_mtot, ~Prov*Stress))
 ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=Prov)) +
   geom_violin(data=CHR, aes(x = Stress, y = Mtot, fill=Prov), position=position_dodge(width=0.8)) +
-  scale_fill_discrete_qualitative(palette = "Set 2")+
+  #scale_fill_grey(start = 0.8, end = 0.3) + #ton de gris
+  #scale_fill_brewer(palette = "Set2") + #RcolorBrewer
+  #scale_fill_manual(values = wes_palette("Royal1")) +
+  scale_fill_manual(values=c("#FEB24C" ,"#FC4E2A","#E31A1C"))+
   geom_point(size=3, position=position_dodge(width=0.8), show.legend = FALSE) +
   geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend = FALSE)+
   theme_classic() +
   scale_shape_manual(values=c(19, 19, 19))+ #10,19,1 pour ronds distincts
-  labs(shape="Provenance") +
+  labs(fill="Analogs") +   
   scale_x_discrete(labels=c("No stress","High stress"))+
   scale_y_continuous(limits = c(0,120), expand = expand_scale()) +
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  geom_text(aes(x=Stress, y=upper.CL+2),
+  geom_text(aes(x=Stress, y=c(79,115,80,61,70,58)),
             label = c("b","a","ab","ab","b","ab"),  
             position=position_dodge(width=0.8),
             show.legend=F, size=4.5) 
@@ -460,8 +464,10 @@ ggplot(CHR_LRatio_mod, aes(x = Prov, y = lsmean)) +
         panel.border = element_rect(colour = "black", fill=NA, size=0.5)) +
   geom_text(aes(x=Prov, y=upper.CL+0.05),label = c("a","b","ab"))
 
-#Enlever le log - Violin plot Prov
+#Enlever le log (retrotransformer)
 CHR_Ratio_mod <- mutate(CHR_LRatio_mod, lsmean=10^(lsmean),lower.CL=10^(lower.CL), upper.CL=10^(upper.CL))
+
+#Violin plot Prov (retrotransforme)
 ggplot(CHR_Ratio_mod, aes(x = Prov, y = lsmean)) +
   geom_violin(data=CHR, aes(x=Prov, y=Ratio), fill="grey")+
   geom_point(size=3) +
@@ -510,23 +516,23 @@ anova(mod_ERS_mtot)
 lsmeans(mod_ERS_mtot, pairwise~Stress*Brout)
 #Différence entre NoBrout et Brout de Stress1
 
-#Representation Stress*Brout avec les estimes du modele 
+#Violinplot Stress*Brout avec les estimes du modele 
 ERS_Mtot_mod <- summary(lsmeans(mod_ERS_mtot, ~Stress*Brout))
 ggplot(ERS_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
   geom_violin(data=ERS, aes(x = Stress, y = Mtot, fill=Brout), position=position_dodge(width=0.8)) +
-  scale_fill_discrete_qualitative(palette = "Set 2")+
   geom_point(size=3, position=position_dodge(width=0.8), show.legend = FALSE) +
   geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend = FALSE)+
   theme_classic() +
   theme(legend.title=element_blank()) + #Enlever titres des legendes
   scale_x_discrete(labels=c("No stress","Moderate stress", "High stress"))+
-  scale_y_continuous(limits = c(0,85), expand = expand_scale()) + 
-  scale_shape_manual(values=c(19,17), labels=c("Unbrowsed", "Browsed"))+
+  scale_y_continuous(limits = c(0,95), expand = expand_scale()) + 
+  scale_fill_manual(values = c("#7FBC41", "#276419"), labels=c("Unbrowsed", "Browsed"))+
+  scale_shape_manual(values=c(19, 19))+ 
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  geom_text(aes(x=Stress, y=upper.CL+2),
+  geom_text(aes(x=Stress, y=c(88,50,65,54,85,68)),
             label = c("ab","a","ab","ab","b","ab"),  
             position=position_dodge(width=0.8), size=4.5, show.legend=F)
 
@@ -585,17 +591,17 @@ ggplot(THO_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
   geom_violin(data=THO, aes(x=Stress, y=Mtot, fill=Brout), position=position_dodge(width=0.8))+
   geom_point(size=3, position=position_dodge(width=0.8), show.legend=FALSE) +
   geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend=FALSE)+
-  scale_fill_discrete_qualitative(palette = "Set 2")+
   theme_classic() +
   theme(legend.title=element_blank()) + #Enlever titres des legendes
   scale_x_discrete(labels=c("No stress","Moderate stress", "High stress"))+
-  scale_y_continuous(limits = c(0,100), expand = expand_scale()) + 
-  scale_shape_manual(values=c(19,19), labels=c("Unbrowsed", "Browsed"))+
+  scale_y_continuous(limits = c(0,105), expand = expand_scale()) + 
+  scale_shape_manual(values=c(19, 19))+ 
+  scale_fill_manual(values = c("#7FBC41", "#276419"), labels=c("Unbrowsed", "Browsed"))+
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
   theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  geom_text(aes(x=Stress, y=upper.CL+3),
+  geom_text(aes(x=Stress, y=c(100,100,61,75,62,62)),
             label = c("a","ab","b","ab","ab","b"),  
             position=position_dodge(width=0.8), size=4.5, show.legend=F)
 
@@ -1290,10 +1296,10 @@ stress <- rbind(stress, new_row)
 humidite <- left_join(humidite, stress, by="ID") 
 
 #Humidite selon date, stress et espece
-Summary_humidite <- summarySE(humidite, measurevar = "humidite", groupvars = c("date",  "Esp", "Stress")) 
+Summary_humidite <- summarySE(humidite, measurevar = "humidite", groupvars = c("Esp",  "date", "Stress")) 
 
 #Humidite selon stress et espece (moyenne juin-juillet apres l'ajustement de frequence d'arrosage)
 humidite_fin <- humidite %>% filter(date=="2019-06-26"|date=="2019-07-24") 
-Summary_humidite_fin <- summarySE(humidite_fin, measurevar = "humidite", groupvars = c("Stress","Esp")) 
+Summary_humidite_fin <- summarySE(humidite_fin, measurevar = "humidite", groupvars = c("Esp","Stress")) 
 
 
