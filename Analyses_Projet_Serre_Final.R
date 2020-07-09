@@ -24,30 +24,30 @@ library(wesanderson) #couleur graphiques
 #####IMPORTATION DES DONNEES####
 
 #Jeu de donnees des masses
-#Serre <- read.table("./Masses3.txt", header=TRUE, na.string = "", dec = ",") 
-
-#Serre$Brout <- replace(Serre$Brout,Serre$Brout=="0","NoBrout")
-#Serre$Brout <- replace(Serre$Brout,Serre$Brout=="1","Brout")
-#Serre$Stress <- replace(Serre$Stress,Serre$Stress=="0","NoStress")
-#Serre$Stress <- replace(Serre$Stress,Serre$Stress=="1","Stress1")
-#Serre$Stress <- replace(Serre$Stress,Serre$Stress=="2","Stress2")
+# Serre <- read.table("./Masses3.txt", header=TRUE, na.string = "", dec = ",")
+# 
+# Serre$Brout <- replace(Serre$Brout,Serre$Brout=="0","NoBrout")
+# Serre$Brout <- replace(Serre$Brout,Serre$Brout=="1","Brout")
+# Serre$Stress <- replace(Serre$Stress,Serre$Stress=="0","NoStress")
+# Serre$Stress <- replace(Serre$Stress,Serre$Stress=="1","Stress1")
+# Serre$Stress <- replace(Serre$Stress,Serre$Stress=="2","Stress2")
 
 #Jeux de donnees de l'analyse chimique
-#chemPIB <- read.table("./PIB.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-#chemERS <- read.table("./ERS.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-#chemCET <- read.table("./CET.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-#chemTHO <- read.table("./THO.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-#chemCHR <- read.table("./CHR.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
-
-#chem <- rbind(chemPIB, chemERS, chemCET, chemTHO, chemCHR)
-#colnames(chem)[2] <- "ID"
-#chem <- subset(chem, select = -ID_lab)
+# chemPIB <- read.table("./PIB.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+# chemERS <- read.table("./ERS.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+# chemCET <- read.table("./CET.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+# chemTHO <- read.table("./THO.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+# chemCHR <- read.table("./CHR.txt", header = TRUE, dec = ",", stringsAsFactors = FALSE)
+# 
+# chem <- rbind(chemPIB, chemERS, chemCET, chemTHO, chemCHR)
+# colnames(chem)[2] <- "ID"
+# chem <- subset(chem, select = -ID_lab)
 
 #Jeu de donnees fusionnes
-#data <- inner_join(Serre, chem, by = "ID")
+# data <- inner_join(Serre, chem, by = "ID")
 
 #Exporter jeu de donnes complet
-#write.table(data, "Donnees_Serre_Complet.txt", sep=",")
+# write.table(data, "Donnees_Serre_Complet.txt", sep=",")
 
 #Importer jeu de donnees complet
 data <- read.table("./Donnees_Serre_Complet.txt", header=TRUE, sep = ",") 
@@ -447,7 +447,8 @@ mod_CHR_Lratio <- lmerTest::lmer( LRatio ~ Stress*Brout*Prov + (1|Bloc/Stress), 
 anova(mod_CHR_Lratio) #Effet Prov, Tendance Stress 
 
 #Estimes, intervalle de confiance et test a posteriori pour Provenance
-lsmeans(mod_CHR_Lratio,pairwise~Prov)
+lsmeans(mod_CHR_Lratio,pairwise~Prov) 
+
 #Difference entre 2018 et 2050
 
 #Violin plot Prov (log)
@@ -466,6 +467,14 @@ ggplot(CHR_LRatio_mod, aes(x = Prov, y = lsmean)) +
 
 #Enlever le log (retrotransformer)
 CHR_Ratio_mod <- mutate(CHR_LRatio_mod, lsmean=10^(lsmean),lower.CL=10^(lower.CL), upper.CL=10^(upper.CL))
+
+####AJOUT EMILIE####
+library(RVAideMemoire)
+
+emmeans(mod_CHR_Lratio, ~ Prov) %>%
+  back.emmeans(transform = "log", base) #Il y a une différence dans nos résultats, 
+#mais c'est parce que tu as fait ta rétrotransformation sur une base 10, 
+#alors que par défaut, log() utilise la base naturelle.
 
 #Violin plot Prov (retrotransforme)
 ggplot(CHR_Ratio_mod, aes(x = Prov, y = lsmean)) +
@@ -1012,7 +1021,7 @@ qqPlot(resid(CHR_phen)) #Graphique de normalite ok
     ####FLAVONOIDES CHENES####
 
 ##Modèle avec plan en tiroir pour les flavonoïdes
-CHR_flav <- lmerTest::lmer( Flav ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR2_mean)
+CHR_flav <- lmerTest::lmer( Flav ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR_mean)
 anova(CHR_flav) #Rien de significatif
 
 #Conditions d'application
