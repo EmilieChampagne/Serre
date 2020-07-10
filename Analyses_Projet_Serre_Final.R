@@ -872,6 +872,8 @@ boxplot(N ~ Stress, data= CHR)
 boxplot(Phen ~ Stress, data= CHR)
 boxplot(Flav ~ Stress, data= CHR)
 
+boxplot(Phen ~ Stress*Brout, data= CHR)
+
 ##ERS
 boxplot(N ~ Brout, data= ERS)#Variance hétérogènes?
 boxplot(Phen ~ Brout, data= ERS)#Variance hétérogènes?
@@ -938,6 +940,30 @@ anova(CET_phen) #Rien de significatif
 plot(CET_phen) #Homogeneite des variances ok
 qqPlot(resid(CET_phen)) #Graphique de normalite ok
 
+summary(lsmeans(CET_phen, pairwise~Brout*Prov))
+CET_phen_mod <- summary(lsmeans(CET_phen, ~Brout*Prov))
+ggplot(CET_phen_mod, aes(x = Brout, y = lsmean, col=Prov)) +
+  geom_point(size=4, position=position_dodge(width=0.4)) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, 
+                position=position_dodge(width=0.4))+
+  scale_color_manual(values=c("limegreen", "lightcoral", "lightblue"),
+                     labels=c("2018", "2050", "2080"))+
+  scale_x_discrete(labels=c("0","1"))+
+  xlab("Simulated browsing") +  
+  ylab("phenonoids (mg/g)") 
+
+summary(lsmeans(CET_phen, pairwise~Stress*Prov))
+CET_phen_mod <- summary(lsmeans(CET_phen, ~Stress*Prov))
+ggplot(CET_phen_mod, aes(x = Stress, y = lsmean, col=Prov)) +
+  geom_point(size=4, position=position_dodge(width=0.4)) +
+  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, 
+                position=position_dodge(width=0.4))+
+  scale_color_manual(values=c("limegreen", "lightcoral", "lightblue"),
+                     labels=c("2018", "2050", "2080"))+
+  scale_x_discrete(labels=c("0","1"))+
+  xlab("Simulated browsing") +  
+  ylab("phenonoids (mg/g)") 
+
     ####FLAVONOIDES CERISIERS####
 
 ##Modèle avec plan en tiroir pour les flavonoïdes
@@ -948,19 +974,39 @@ summary(lsmeans(CET_flav, pairwise~Brout*Prov))
 
 ##Graph: veut pas dire grand chose
 CET_flav_mod <- summary(lsmeans(CET_flav, ~Brout*Prov))
-ggplot(CET_flav_mod, aes(x = Brout, y = lsmean, col=Prov)) +
-  geom_point(size=4, position=position_dodge(width=0.4)) +
-  geom_errorbar(aes(ymin=lower.CL, ymax=upper.CL), width=.1, 
-                position=position_dodge(width=0.4))+
-  scale_color_manual(values=c("limegreen", "lightcoral", "lightblue"),
-                     labels=c("2018", "2050", "2080"))+
-  scale_x_discrete(labels=c("0","1"))+
+ggplot(CET_flav_mod, aes(x = Brout, y = lsmean, shape=Prov)) +
+  geom_violin(data=CET_mean, aes(x = Brout, y = Flav, fill=Prov))+
+  scale_fill_manual(values=c("#FEB24C" ,"#FC4E2A","#E31A1C"))+
+  geom_point(size=4, position=position_dodge(width=0.9)) +
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.9), show.legend = FALSE)+
+  scale_x_discrete(labels=c("Unbrowsed","Browsed"))+
   xlab("Simulated browsing") +  
   ylab("Flavonoids (mg/g)") +
-  geom_text(aes(x=Brout, y=upper.CL+0.3),
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
+  geom_text(aes(x=Brout, y=upper.CL+0.2),
             label = c("ab","b","ab","ab","a","ab"),  
-            position=position_dodge(width=0.4),
+            position=position_dodge(width=0.9),
             show.legend=F, size=4.5) 
+ggsave("cherryflav.jpg")
+
+ggplot(THO_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
+  geom_violin(data=THO, aes(x=Stress, y=Mtot, fill=Brout), position=position_dodge(width=0.8))+
+  geom_point(size=3, position=position_dodge(width=0.8), show.legend=FALSE) +
+  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend=FALSE)+
+  theme_classic() +
+  theme(legend.title=element_blank()) + #Enlever titres des legendes
+  scale_x_discrete(labels=c("No stress","Moderate stress", "High stress"))+
+  scale_y_continuous(limits = c(0,105), expand = expand_scale()) + 
+  scale_shape_manual(values=c(19, 19))+ 
+  scale_fill_manual(values = c("#7FBC41", "#276419"), labels=c("Unbrowsed", "Browsed"))+
+  xlab("Water stress treatment") +  
+  ylab("Mass (g)") +
+  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+        panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
+  geom_text(aes(x=Stress, y=c(100,100,61,75,62,62)),
+            label = c("a","ab","b","ab","ab","b"),  
+            position=position_dodge(width=0.8), size=4.5, show.legend=F)
 
 #Conditions d'application
 plot(CET_flav) #Homogeneite des variances ok
@@ -969,14 +1015,14 @@ qqPlot(resid(CET_flav)) #Graphique de normalite ok
 ####ANALYSES CHIMIQUES CHENES#########
     ####AZOTE CHENES####
 
-##Modèle avec plan en tiroir pour l'azote
-CHR_N <- lmerTest::lmer(N ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR_mean)
-summary(CHR_N)
-anova(CHR_N) #Effet Stress*brout
-
-#Conditions d'application
-plot(CHR_N) #Homogeneite des variances --> 3 valeurs un peu extremes, échelle jusqu'a 10 = eleve!
-qqPlot(resid(CHR_N)) #Graphique de normalite --> 3 valeurs un peu extremes
+# ##Modèle avec plan en tiroir pour l'azote
+# CHR_N <- lmerTest::lmer(N ~ Stress*Brout*Prov + (1|Bloc/Stress), data = CHR_mean)
+# summary(CHR_N)
+# anova(CHR_N) #Effet Stress*brout
+# 
+# #Conditions d'application
+# plot(CHR_N) #Homogeneite des variances --> 3 valeurs un peu extremes, échelle jusqu'a 10 = eleve!
+# qqPlot(resid(CHR_N)) #Graphique de normalite --> 3 valeurs un peu extremes
 
 
 #Ajouter variable Transformation log de N
@@ -993,6 +1039,11 @@ qqPlot(resid(CHR_LN)) #Graphique de normalite --> ok
 #Estimes, intervalles de confiance et Test a posteriori
 summary(lsmeans(CHR_LN, pairwise~Stress*Brout))
 #NoStress-Brout differe de Stress2-Brout 
+
+library(RVAideMemoire)
+
+emmeans(CHR_LN, ~ Stress*Brout) %>%
+  back.emmeans(transform = "log")
 
 ##Graphique Stress*Brout
 CHR_LN_mod <- summary(lsmeans(CHR_LN, ~Stress*Brout))
@@ -1075,6 +1126,8 @@ lsmeans(ERS_flav, pairwise~Stress)
 #Conditions d'application
 plot(ERS_flav) #Homogeneite des variances ok
 qqPlot(resid(ERS_flav)) #Graphique de normalite ok
+
+
 
 ####ANALYSES CHIMIQUES PINS###########
     ####AZOTE PINS####
@@ -1173,6 +1226,8 @@ anova(THO_N) #Effet Provenance
 #Estimes, intervalle de confiance et Test a posteriori
 summary(lsmeans(THO_N, pairwise~Prov))
 summary(lsmeans(THO_N, pairwise~Stress*Brout*Prov))
+
+boxplot(N~Stress*Brout*Prov, data= THO)
 
 ##Graphique Provenance
 THO_N_mod <- summary(lsmeans(THO_N, ~Prov)) 
