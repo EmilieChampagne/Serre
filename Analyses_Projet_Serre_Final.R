@@ -1300,6 +1300,18 @@ Summary_humidite <- summarySE(humidite, measurevar = "humidite", groupvars = c("
 
 #Humidite selon stress et espece (moyenne juin-juillet apres l'ajustement de frequence d'arrosage)
 humidite_fin <- humidite %>% filter(date=="2019-06-26"|date=="2019-07-24") 
-Summary_humidite_fin <- summarySE(humidite_fin, measurevar = "humidite", groupvars = c("Esp","Stress")) 
+Summary_humidite_fin <- summarySE(humidite_fin, measurevar = "humidite", groupvars = c("Stress")) 
+
+#Difference entre les niveaux de stress (humifide_fin)
+boxplot(humidite_fin$humidite~humidite_fin$Stress)
+test_humidite<-aov(humidite~Stress, data=humidite_fin)
+summary(test_humidite) #effet stress significatif
+TukeyHSD(test_humidite) #Tout est significatif
+
+
+
+
+
+
 
 
