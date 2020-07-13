@@ -20,6 +20,7 @@ library(corrplot)
 library(Hmisc) #violin plot
 library(colorspace)
 library(wesanderson) #couleur graphiques
+library(RVAideMemoire) #retransformer
 
 #####IMPORTATION DES DONNEES####
 
@@ -297,8 +298,8 @@ ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=Prov)) +
   geom_violin(data=CHR, aes(x = Stress, y = Mtot, fill=Prov), position=position_dodge(width=0.8)) +
   #scale_fill_grey(start = 0.8, end = 0.3) + #ton de gris
   #scale_fill_brewer(palette = "Set2") + #RcolorBrewer
-  #scale_fill_manual(values = wes_palette("Royal1")) +
-  scale_fill_manual(values=c("#FEB24C" ,"#FC4E2A","#E31A1C"))+
+  scale_fill_manual(values = wes_palette("Royal1")) +
+  #scale_fill_manual(values=c("#FEB24C" ,"#FC4E2A","#E31A1C"))+
   geom_point(size=3, position=position_dodge(width=0.8), show.legend = FALSE) +
   geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend = FALSE)+
   theme_classic() +
@@ -308,12 +309,12 @@ ggplot(CHR_Mtot_mod, aes(x = Stress, y = lsmean, shape=Prov)) +
   scale_y_continuous(limits = c(0,120), expand = expand_scale()) +
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+  theme(text=element_text(size=15, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
   geom_text(aes(x=Stress, y=c(79,115,80,61,70,58)),
             label = c("b","a","ab","ab","b","ab"),  
             position=position_dodge(width=0.8),
-            show.legend=F, size=4.5) 
+            show.legend=F, size=5) 
 
 #Une valeur semble tres elevee
 #Essayer d'enlever la valeur plus extremes pour voir(29) 
@@ -447,7 +448,7 @@ mod_CHR_Lratio <- lmerTest::lmer( LRatio ~ Stress*Brout*Prov + (1|Bloc/Stress), 
 anova(mod_CHR_Lratio) #Effet Prov, Tendance Stress 
 
 #Estimes, intervalle de confiance et test a posteriori pour Provenance
-lsmeans(mod_CHR_Lratio,pairwise~Prov) 
+lsmeans(mod_CHR_Lratio,~Prov) 
 
 #Difference entre 2018 et 2050
 
@@ -466,13 +467,13 @@ ggplot(CHR_LRatio_mod, aes(x = Prov, y = lsmean)) +
   geom_text(aes(x=Prov, y=upper.CL+0.05),label = c("a","b","ab"))
 
 #Enlever le log (retrotransformer)
-CHR_Ratio_mod <- mutate(CHR_LRatio_mod, lsmean=10^(lsmean),lower.CL=10^(lower.CL), upper.CL=10^(upper.CL))
+CHR_Ratio_mod <- mutate(CHR_LRatio_mod, lsmean=exp(lsmean),lower.CL=exp(lower.CL), upper.CL=exp(upper.CL))
 
 ####AJOUT EMILIE####
-library(RVAideMemoire)
+
 
 emmeans(mod_CHR_Lratio, ~ Prov) %>%
-  back.emmeans(transform = "log", base) #Il y a une différence dans nos résultats, 
+  back.emmeans(transform = "log", exp(1)) #Il y a une différence dans nos résultats, 
 #mais c'est parce que tu as fait ta rétrotransformation sur une base 10, 
 #alors que par défaut, log() utilise la base naturelle.
 
@@ -539,11 +540,11 @@ ggplot(ERS_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
   scale_shape_manual(values=c(19, 19))+ 
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+  theme(text=element_text(size=15, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
   geom_text(aes(x=Stress, y=c(88,50,65,54,85,68)),
             label = c("ab","a","ab","ab","b","ab"),  
-            position=position_dodge(width=0.8), size=4.5, show.legend=F)
+            position=position_dodge(width=0.8), size=5, show.legend=F)
 
 ##Verifier residus 
 plot(mod_ERS_mtot) #Homogeneite des variances ok
@@ -594,7 +595,7 @@ lsmeans(mod_THO_mtot, pairwise~Stress*Brout)
 #NoStressNoBrout differe de Stress2NoBrout 
 #NoStressNoBrout differe de Stress2Brout 
 
-#Representation Stress et Brout avec estimes du modele 
+#Representation Stress et Brout avec estimes du modele violin plot
 THO_Mtot_mod <- summary(lsmeans(mod_THO_mtot, ~Stress*Brout))
 ggplot(THO_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
   geom_violin(data=THO, aes(x=Stress, y=Mtot, fill=Brout), position=position_dodge(width=0.8))+
@@ -608,11 +609,11 @@ ggplot(THO_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
   scale_fill_manual(values = c("#7FBC41", "#276419"), labels=c("Unbrowsed", "Browsed"))+
   xlab("Water stress treatment") +  
   ylab("Mass (g)") +
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+  theme(text=element_text(size=15, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
   geom_text(aes(x=Stress, y=c(100,100,61,75,62,62)),
             label = c("a","ab","b","ab","ab","b"),  
-            position=position_dodge(width=0.8), size=4.5, show.legend=F)
+            position=position_dodge(width=0.8), size=5, show.legend=F)
 
 ##Verifier Assomptions de modele
 plot(mod_THO_mtot) #Homogeneite des variances ok
@@ -972,41 +973,27 @@ anova(CET_flav) #Interaction Brout*Prov
 summary(lsmeans(CET_flav, pairwise~Brout*Prov))
 #Brout 2018 differe de NoBrout 2080
 
-##Graph: veut pas dire grand chose
+#Violin plot (veut pas dire grand chose)
 CET_flav_mod <- summary(lsmeans(CET_flav, ~Brout*Prov))
 ggplot(CET_flav_mod, aes(x = Brout, y = lsmean, shape=Prov)) +
   geom_violin(data=CET_mean, aes(x = Brout, y = Flav, fill=Prov))+
-  scale_fill_manual(values=c("#FEB24C" ,"#FC4E2A","#E31A1C"))+
-  geom_point(size=4, position=position_dodge(width=0.9)) +
+  scale_fill_manual(values = wes_palette("Royal1")) +
+  geom_point(size=3, position=position_dodge(width=0.9), show.legend = FALSE) +
   geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.9), show.legend = FALSE)+
   scale_x_discrete(labels=c("Unbrowsed","Browsed"))+
   xlab("Simulated browsing") +  
   ylab("Flavonoids (mg/g)") +
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
+  labs(fill="Analogs") + 
+  scale_shape_manual(values=c(19, 19, 19))+ 
+  theme(text=element_text(size=15, family="sans"), #Police Arial ("serif" pour Time New Roman)
         panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  geom_text(aes(x=Brout, y=upper.CL+0.2),
+  geom_text(aes(x=Brout, y=c(6.7,4.7,4.8,6.7,5.7,5.2)),
             label = c("ab","b","ab","ab","a","ab"),  
             position=position_dodge(width=0.9),
-            show.legend=F, size=4.5) 
-ggsave("cherryflav.jpg")
+            show.legend=F, size=5) 
+#ggsave("cherryflav.jpg")
 
-ggplot(THO_Mtot_mod, aes(x = Stress, y = lsmean, shape=Brout)) +
-  geom_violin(data=THO, aes(x=Stress, y=Mtot, fill=Brout), position=position_dodge(width=0.8))+
-  geom_point(size=3, position=position_dodge(width=0.8), show.legend=FALSE) +
-  geom_pointrange(aes(ymin=lower.CL, ymax=upper.CL), position=position_dodge(width=0.8), show.legend=FALSE)+
-  theme_classic() +
-  theme(legend.title=element_blank()) + #Enlever titres des legendes
-  scale_x_discrete(labels=c("No stress","Moderate stress", "High stress"))+
-  scale_y_continuous(limits = c(0,105), expand = expand_scale()) + 
-  scale_shape_manual(values=c(19, 19))+ 
-  scale_fill_manual(values = c("#7FBC41", "#276419"), labels=c("Unbrowsed", "Browsed"))+
-  xlab("Water stress treatment") +  
-  ylab("Mass (g)") +
-  theme(text=element_text(size=12, family="sans"), #Police Arial ("serif" pour Time New Roman)
-        panel.border = element_rect(colour = "black", fill=NA, size=0.5))+ 
-  geom_text(aes(x=Stress, y=c(100,100,61,75,62,62)),
-            label = c("a","ab","b","ab","ab","b"),  
-            position=position_dodge(width=0.8), size=4.5, show.legend=F)
+
 
 #Conditions d'application
 plot(CET_flav) #Homogeneite des variances ok
@@ -1366,3 +1353,8 @@ Summary_humidite <- summarySE(humidite, measurevar = "humidite", groupvars = c("
 humidite_fin <- humidite %>% filter(date=="2019-06-26"|date=="2019-07-24") 
 Summary_humidite_fin <- summarySE(humidite_fin, measurevar = "humidite", groupvars = c("Esp","Stress"))
 
+#Difference entre les niveaux de stress (humifide_fin)
+boxplot(humidite_fin$humidite~humidite_fin$Stress)
+test_humidite<-aov(humidite~Stress, data=humidite_fin)
+summary(test_humidite) #effet stress significatif
+TukeyHSD(test_humidite) #Tout est significatif
